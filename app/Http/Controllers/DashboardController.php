@@ -5,20 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\Clase;
 use App\Models\Student;
+use App\Models\StudentPlan;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $totalStudents = Student::where('active', true)->count();
-        $totalClases = Clase::where('active', true)->count();
-        $todayAttendances = Attendance::whereDate('date', today())->distinct('clase_id')->count('clase_id');
+        $activeStudents  = Student::where('active', true)->count();
+        $monthlyPlans    = StudentPlan::whereYear('start_date', now()->year)
+                              ->whereMonth('start_date', now()->month)
+                              ->count();
+        $monthlyIncome   = StudentPlan::whereYear('start_date', now()->year)
+                              ->whereMonth('start_date', now()->month)
+                              ->whereNotNull('price')
+                              ->sum('price');
+
         $activeClases = Clase::where('active', true)->withCount('students')->get();
 
         return view('dashboard.index', compact(
-            'totalStudents',
-            'totalClases',
-            'todayAttendances',
+            'activeStudents',
+            'monthlyPlans',
+            'monthlyIncome',
             'activeClases'
         ));
     }

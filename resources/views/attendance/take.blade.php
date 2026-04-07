@@ -88,16 +88,17 @@
 }">
 
     {{-- Cabecera --}}
-    <div class="bg-teal-600 px-4 pt-6 pb-4">
+    <div class="bg-black/30 backdrop-blur-sm border-b border-white/10 px-4 pt-6 pb-4">
         <div class="flex items-center gap-3 mb-3">
             <a href="{{ route('attendance.index') }}" class="text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
             </a>
+            <img src="{{ asset('images/logo-xs.jpg') }}" class="w-8 h-8 object-contain rounded-full shrink-0" alt="Logo">
             <div class="flex-1">
                 <h1 class="text-xl font-bold text-white">{{ $clase->name }}</h1>
-                <p class="text-teal-200 text-sm">
+                <p class="text-white/60 text-sm">
                     {{ $date->locale('es')->isoFormat('dddd D [de] MMMM [de] YYYY') }}
                     @if($date->isToday())
                         <span class="ml-1 text-teal-300">(Hoy)</span>
@@ -107,8 +108,8 @@
         </div>
 
         {{-- Selector de fecha --}}
-        <div class="flex items-center gap-2 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 mt-3">
-            <svg class="w-4 h-4 text-teal-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center gap-2 bg-white/15 border border-white/20 rounded-xl px-3 py-2 mt-3">
+            <svg class="w-4 h-4 text-teal-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
@@ -116,25 +117,25 @@
                    value="{{ $date->toDateString() }}"
                    max="{{ today()->toDateString() }}"
                    onchange="window.location.href='{{ route('attendance.take', $clase) }}?date=' + this.value"
-                   style="background:transparent; color: inherit;"
-                   class="flex-1 text-gray-800 dark:text-gray-100 text-sm focus:outline-none w-full">
+                   style="background:transparent; color: white;"
+                   class="flex-1 text-sm focus:outline-none w-full">
         </div>
 
         @if(!$date->isToday())
-            <div class="bg-yellow-400 text-yellow-900 text-xs font-medium px-3 py-2 rounded-lg mt-2">
+            <div class="bg-yellow-400/20 border border-yellow-400/30 text-yellow-300 text-xs font-medium px-3 py-2 rounded-lg mt-2">
                 Estás viendo asistencia de una fecha pasada
             </div>
         @endif
     </div>
 
     {{-- Barra de estado --}}
-    <div class="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">
-        <p class="text-sm text-gray-600 dark:text-gray-300">
-            <span class="font-bold text-green-600 dark:text-green-400" x-text="presentCount"></span>
+    <div class="bg-white/5 backdrop-blur-sm border-b border-white/10 px-4 py-3 flex items-center justify-between">
+        <p class="text-sm text-white/70">
+            <span class="font-bold text-green-400" x-text="presentCount"></span>
             / {{ $students->count() }} total
         </p>
         <button type="button" @click="modalOpen = true"
-                class="flex items-center gap-1.5 text-xs text-teal-600 dark:text-teal-400 font-medium px-3 py-1.5 bg-teal-50 dark:bg-teal-900/30 rounded-lg">
+                class="flex items-center gap-1.5 text-xs text-teal-300 font-medium px-3 py-1.5 bg-teal-500/20 border border-teal-400/20 rounded-lg">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -143,29 +144,29 @@
     </div>
 
     @if($students->isEmpty())
-        <div class="text-center py-12 text-gray-400 dark:text-gray-500 px-4">
+        <div class="text-center py-12 text-white/40 px-4">
             <p class="text-sm">Este curso no tiene alumnos inscritos.</p>
             <a href="{{ route('clases.enroll', $clase) }}"
-               class="text-teal-600 dark:text-teal-400 text-sm font-medium mt-1 inline-block">
+               class="text-teal-400 text-sm font-medium mt-1 inline-block">
                 Gestionar matrícula →
             </a>
         </div>
     @else
         {{-- Buscador --}}
-        <div class="bg-white dark:bg-gray-800 px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+        <div class="bg-white/5 backdrop-blur-sm px-4 py-2 border-b border-white/10">
             <div class="relative">
-                <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-white/40 absolute left-3 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
                 </svg>
                 <input type="search" x-model="search"
                        placeholder="Buscar alumno..."
                        autocomplete="off"
                        :class="search ? 'pr-8' : 'pr-4'"
-                       class="w-full pl-9 py-2 rounded-xl text-sm border border-gray-200 dark:border-gray-600
-                              bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400
+                       class="w-full pl-9 py-2 rounded-xl text-sm border border-white/20
+                              bg-white/10 text-white placeholder-white/40
                               focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <button x-show="search" @click="search = ''"
-                        class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        class="absolute right-3 top-2.5 text-white/40 hover:text-white">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -173,35 +174,35 @@
             </div>
         </div>
 
-        <div class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
+        <div class="divide-y divide-white/10">
             <template x-for="student in filteredStudents" :key="student.id">
-                <div :class="student.present ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'"
+                <div :class="student.present ? 'bg-green-500/15' : 'bg-red-500/10'"
                      class="flex items-center px-4 py-4 transition-colors select-none"
                      @dblclick="toggle(student)">
 
                     <div class="flex-1 min-w-0 mr-3">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <p class="font-medium text-gray-900 dark:text-white text-base" x-text="student.name"></p>
+                            <p class="font-medium text-white text-base" x-text="student.name"></p>
                             <span x-show="student.planStatus === 'exhausted'"
-                                  class="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30 px-1.5 py-0.5 rounded-full">
+                                  class="text-xs font-medium text-orange-300 bg-orange-500/20 px-1.5 py-0.5 rounded-full">
                                 Clases agotadas
                             </span>
                             <span x-show="student.planStatus === 'expired'"
-                                  class="text-xs font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded-full">
+                                  class="text-xs font-medium text-red-300 bg-red-500/20 px-1.5 py-0.5 rounded-full">
                                 Plan vencido
                             </span>
                             <span x-show="student.planStatus === 'no_plan'"
-                                  class="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-full">
+                                  class="text-xs font-medium text-white/40 bg-white/10 px-1.5 py-0.5 rounded-full">
                                 Sin plan
                             </span>
                         </div>
                         <p class="text-xs mt-0.5"
-                           :class="student.error ? 'text-orange-500' : (student.present ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400')"
+                           :class="student.error ? 'text-orange-400' : (student.present ? 'text-green-400' : 'text-red-400')"
                            x-text="student.error ? 'Error al guardar' : (student.present ? 'Presente' : 'Ausente')"></p>
                     </div>
 
                     <span x-show="student.saving" class="mr-3">
-                        <svg class="w-4 h-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 text-white/40 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                         </svg>
@@ -216,7 +217,7 @@
                     <button type="button"
                             @click="toggle(student)"
                             :disabled="student.saving"
-                            :class="student.present ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
+                            :class="student.present ? 'bg-green-500' : 'bg-white/20'"
                             class="relative w-14 h-8 rounded-full transition-colors duration-200 focus:outline-none shrink-0 disabled:opacity-60">
                         <span :class="student.present ? 'translate-x-7' : 'translate-x-1'"
                               class="absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 block">
@@ -230,18 +231,18 @@
     {{-- Modal: Añadir alumno no inscrito --}}
     <div x-show="modalOpen"
          class="flex items-center justify-center"
-         style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; background-color:rgba(0,0,0,0.5);"
+         style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; background-color:rgba(0,0,0,0.7);"
          @click.self="modalOpen = false">
 
-        <div style="width:90%; max-width:26rem; height:70vh;"
-             class="bg-white dark:bg-gray-900 rounded-2xl flex flex-col shadow-xl"
+        <div style="width:90%; max-width:26rem; height:70vh; background:rgba(15,15,30,0.95); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.15);"
+             class="rounded-2xl flex flex-col shadow-2xl"
              @click.stop>
 
             {{-- Cabecera modal --}}
-            <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
-                <h2 class="font-semibold text-gray-900 dark:text-white text-base">Añadir alumno no inscrito</h2>
+            <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/10 shrink-0">
+                <h2 class="font-semibold text-white text-base">Añadir alumno no inscrito</h2>
                 <button type="button" @click="modalOpen = false"
-                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
+                        class="text-white/40 hover:text-white p-1">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -251,33 +252,33 @@
             {{-- Buscador --}}
             <div class="px-4 py-3 shrink-0">
                 <div class="relative">
-                    <svg class="w-4 h-4 text-gray-400 absolute left-3 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-white/40 absolute left-3 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
                     </svg>
                     <input type="search" x-model="modalSearch"
                            x-ref="modalInput"
                            placeholder="Buscar alumno..."
                            autocomplete="off"
-                           class="w-full pl-9 pr-4 py-2 rounded-xl text-sm border border-gray-200 dark:border-gray-600
-                                  bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400
+                           class="w-full pl-9 pr-4 py-2 rounded-xl text-sm border border-white/20
+                                  bg-white/10 text-white placeholder-white/40
                                   focus:outline-none focus:ring-2 focus:ring-teal-400">
                 </div>
             </div>
 
             {{-- Lista --}}
-            <div class="overflow-y-auto flex-1 divide-y divide-gray-100 dark:divide-gray-700">
+            <div class="overflow-y-auto flex-1 divide-y divide-white/10">
                 <template x-for="result in getSearchResults()" :key="result.id">
                     <button type="button" @click="addStudent(result)"
-                            class="w-full flex items-center px-4 py-3 text-left hover:bg-teal-50 dark:hover:bg-teal-900/20">
+                            class="w-full flex items-center px-4 py-3 text-left hover:bg-teal-500/20">
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="result.name"></p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400" x-text="result.phone"></p>
+                            <p class="text-sm font-medium text-white" x-text="result.name"></p>
+                            <p class="text-xs text-white/50" x-text="result.phone"></p>
                         </div>
-                        <span class="text-xs text-teal-600 dark:text-teal-400 font-medium ml-2 shrink-0">+ Añadir</span>
+                        <span class="text-xs text-teal-400 font-medium ml-2 shrink-0">+ Añadir</span>
                     </button>
                 </template>
                 <div x-show="getSearchResults().length === 0"
-                     class="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+                     class="px-4 py-8 text-center text-sm text-white/40">
                     <span x-text="modalSearch ? 'Sin resultados para la búsqueda' : 'No hay alumnos no inscritos'"></span>
                 </div>
             </div>

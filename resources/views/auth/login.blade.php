@@ -4,49 +4,53 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="theme-color" content="#4f46e5">
-    <title>Acceso — Academia</title>
-    <script>
-        if (!window.matchMedia('(prefers-color-scheme: light)').matches) {
-            document.documentElement.classList.add('dark');
-        }
-    </script>
+    <title>Acceso — Salsa Latin Motion</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-indigo-600 dark:bg-gray-900 min-h-screen flex items-center justify-center p-6 transition-colors">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-8">
-        <div class="text-center mb-8">
-            <div class="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Control de Asistencias</h1>
-            <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Ingresa tu PIN para continuar</p>
+<body class="min-h-screen flex items-center justify-center p-6"
+      style="background-image: url('{{ asset('images/fondo.jpg') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
+
+    {{-- Overlay oscuro sobre el fondo --}}
+    <div style="position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:0;"></div>
+
+    <div class="relative z-10 w-full max-w-sm">
+
+        {{-- Logo y nombre --}}
+        <div class="flex flex-col items-center mb-8">
+            <img src="{{ asset('images/logo.png') }}" alt="Salsa Latin Motion"
+                 class="w-28 h-28 object-contain drop-shadow-lg mb-4">
+            <h1 class="text-3xl font-extrabold text-white tracking-wide drop-shadow" style="text-shadow: 0 2px 8px rgba(0,0,0,0.7);">
+                Salsa Latin Motion
+            </h1>
+            <p class="text-white/70 text-sm mt-1 tracking-widest uppercase">Control de Asistencias</p>
         </div>
 
-        <form method="POST" action="{{ route('login.post') }}">
-            @csrf
-            <div class="mb-6">
-                <input type="password"
-                       name="pin"
-                       inputmode="numeric"
-                       pattern="[0-9]*"
-                       autofocus
-                       placeholder="••••"
-                       class="w-full text-center text-3xl tracking-widest font-bold border-2 rounded-xl py-4 px-4
-                              bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500
-                              @error('pin') border-red-400 bg-red-50 dark:bg-red-900/20 @else border-gray-200 dark:border-gray-600 @enderror
-                              focus:outline-none focus:border-indigo-500">
-                @error('pin')
-                    <p class="text-red-500 text-sm text-center mt-2">{{ $message }}</p>
-                @enderror
-            </div>
-            <button type="submit"
-                    class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl text-lg active:bg-indigo-700">
-                Entrar
-            </button>
-        </form>
+        {{-- Tarjeta de login --}}
+        <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl shadow-2xl p-8">
+            <form method="POST" action="{{ route('login.post') }}">
+                @csrf
+                <div class="mb-5">
+                    <input type="password"
+                           name="pin"
+                           inputmode="numeric"
+                           pattern="[0-9]*"
+                           autofocus
+                           placeholder="••••"
+                           class="w-full text-center text-3xl tracking-widest font-bold border-2 rounded-xl py-4 px-4
+                                  bg-white/20 text-white placeholder-white/50
+                                  @error('pin') border-red-400 @else border-white/30 @enderror
+                                  focus:outline-none focus:border-white">
+                    @error('pin')
+                        <p class="text-red-300 text-sm text-center mt-2">{{ $message }}</p>
+                    @enderror
+                </div>
+                <button type="submit"
+                        class="w-full bg-white text-gray-900 font-bold py-4 rounded-xl text-lg active:bg-gray-100 shadow-lg">
+                    Entrar
+                </button>
+            </form>
+        </div>
+
     </div>
 </body>
 </html>

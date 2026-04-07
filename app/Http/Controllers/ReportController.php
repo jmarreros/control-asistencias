@@ -25,7 +25,7 @@ class ReportController extends Controller
         $from = $request->from ?? now()->startOfMonth()->toDateString();
         $to   = $request->to   ?? now()->toDateString();
 
-        $attendances = Attendance::with('student')
+        $attendances = Attendance::with(['student.currentPlan'])
             ->where('clase_id', $clase->id)
             ->whereBetween('date', [$from, $to])
             ->orderBy('date')
@@ -38,9 +38,9 @@ class ReportController extends Controller
             $present = $rows->where('present', true)->count();
             return [
                 'student' => $rows->first()->student,
+                'plan'    => $rows->first()->student->currentPlan,
                 'present' => $present,
                 'total'   => $total,
-                'rate'    => $total > 0 ? round($present / $total * 100) : 0,
             ];
         })->sortBy('student.name')->values();
 
@@ -53,9 +53,9 @@ class ReportController extends Controller
         $to   = $request->to   ?? now()->toDateString();
 
         $plans = StudentPlan::with('student')
-            ->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->whereBetween('start_date', [$from, $to])
             ->whereNotNull('price')
-            ->orderBy('created_at', 'desc')
+            ->orderBy('start_date', 'desc')
             ->get();
 
         $total = $plans->sum('price');
@@ -65,29 +65,7 @@ class ReportController extends Controller
             'total' => $g->sum('price'),
         ]);
 
-        // Por curso: alumnos inscritos en cada clase que tienen plan en el período
-        $clases = Clase::with(['students' => function ($q) use ($from, $to) {
-            $q->whereHas('plans', fn($p) => $p->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])->whereNotNull('price'));
-        }])->orderBy('name')->get();
-
-        $byClase = $clases->map(function ($clase) use ($from, $to) {
-            $students = $clase->students->map(function ($student) use ($from, $to) {
-                $plan = $student->plans()
-                    ->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
-                    ->whereNotNull('price')
-                    ->orderByDesc('created_at')
-                    ->first();
-                return $plan ? ['student' => $student, 'plan' => $plan] : null;
-            })->filter()->values();
-
-            return [
-                'clase'   => $clase,
-                'students' => $students,
-                'total'   => $students->sum(fn($r) => $r['plan']->price),
-            ];
-        })->filter(fn($r) => $r['students']->isNotEmpty())->values();
-
-        return view('reports.earnings', compact('from', 'to', 'plans', 'total', 'byQuota', 'byClase'));
+        return view('reports.earnings', compact('from', 'to', 'plans', 'total', 'byQuota'));
     }
 
     public function earningsExport(Request $request)
@@ -98,6 +76,20 @@ class ReportController extends Controller
         $filename = 'ganancias_' . $from . '_' . $to . '.xlsx';
 
         return Excel::download(new EarningsExport($from, $to), $filename);
+    }
+
+    public function byClaseStudent(Request $request, Clase $clase, Student $student)
+    {
+        $from = $request->from ?? now()->startOfMonth()->toDateString();
+        $to   = $request->to   ?? now()->toDateString();
+
+        $attendances = Attendance::where('clase_id', $clase->id)
+            ->where('student_id', $student->id)
+            ->whereBetween('date', [$from, $to])
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return view('reports.clase-student', compact('clase', 'student', 'attendances', 'from', 'to'));
     }
 
     public function byStudent(Request $request, Student $student)
