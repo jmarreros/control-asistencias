@@ -1,0 +1,126 @@
+@extends('layouts.app')
+
+@section('content')
+<div x-data="{
+    search: '',
+    students: {{ $students->map(fn($s) => [
+        'id'         => $s->id,
+        'name'       => $s->name,
+        'phone'      => $s->phone ?? '',
+        'active'     => $s->active,
+        'url'        => route('students.edit', $s),
+        'planUrl'    => route('students.plans.index', $s),
+        'initial'    => strtoupper(substr($s->name, 0, 1)),
+        'planStatus' => $s->planStatus,
+    ])->toJson() }},
+    get filtered() {
+        if (!this.search.trim()) return this.students;
+        const q = this.search.toLowerCase();
+        return this.students.filter(s =>
+            s.name.toLowerCase().includes(q) ||
+            s.phone.toLowerCase().includes(q)
+        );
+    }
+}">
+
+    {{-- Cabecera --}}
+    <div class="bg-indigo-600 px-4 pt-6 pb-4">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="text-xl font-bold text-white">Alumnos</h1>
+            <a href="{{ route('students.create') }}"
+               class="bg-white text-indigo-600 font-semibold text-sm px-4 py-2 rounded-lg">
+                + Nuevo
+            </a>
+        </div>
+
+        {{-- Búsqueda en tiempo real --}}
+        <div class="relative">
+            <svg class="w-4 h-4 text-indigo-300 absolute left-3 top-3 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+            </svg>
+            <input type="search"
+                   x-model="search"
+                   placeholder="Buscar alumno..."
+                   autocomplete="off"
+                   class="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm bg-indigo-700 text-white placeholder-indigo-300
+                          focus:outline-none focus:bg-white focus:text-gray-900 focus:placeholder-gray-400 transition-colors">
+        </div>
+
+        {{-- Contador de resultados --}}
+        <p class="text-indigo-300 text-xs mt-2" x-text="filtered.length + ' alumno' + (filtered.length !== 1 ? 's' : '')"></p>
+    </div>
+
+    {{-- Lista --}}
+    <div>
+
+        <template x-for="student in filtered" :key="student.id">
+            <div :class="!student.active ? 'opacity-50' : ''"
+                 class="flex items-center px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+
+                <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center
+                            text-indigo-600 dark:text-indigo-400 font-bold text-sm mr-3 shrink-0"
+                     x-text="student.initial">
+                </div>
+
+                <div class="flex-1 min-w-0">
+                    <p class="font-medium text-gray-900 dark:text-white truncate" x-text="student.name"></p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 truncate" x-text="student.phone"></p>
+                    <div class="flex gap-1 mt-0.5 flex-wrap">
+                        <span x-show="!student.active" class="text-xs text-red-400">Inactivo</span>
+                        <span x-show="student.planStatus === 'ok'"
+                              class="text-xs font-medium text-green-600 dark:text-green-400">Plan activo</span>
+                        <span x-show="student.planStatus === 'pending'"
+                              class="text-xs font-medium text-blue-500 dark:text-blue-400">Plan por iniciar</span>
+                        <span x-show="student.planStatus === 'exhausted'"
+                              class="text-xs font-medium text-orange-600 dark:text-orange-400">Plan inactivo</span>
+                        <span x-show="student.planStatus === 'expired'"
+                              class="text-xs font-medium text-red-500 dark:text-red-400">Plan inactivo</span>
+                        <span x-show="student.planStatus === 'no_plan'"
+                              class="text-xs font-medium text-gray-400 dark:text-gray-500">Sin plan</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0 ml-2">
+                    {{-- Botón editar alumno --}}
+                    <a :href="student.url"
+                       class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z"/>
+                        </svg>
+                        Editar
+                    </a>
+                    {{-- Botón plan --}}
+                    <a :href="student.planUrl"
+                       class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                       :class="{
+                           'bg-orange-50 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400': student.planStatus === 'exhausted',
+                           'bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400': student.planStatus === 'expired',
+                           'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400': student.planStatus === 'no_plan' || student.planStatus === 'pending',
+                           'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400': student.planStatus === 'ok',
+                       }">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Plan
+                    </a>
+                </div>
+            </div>
+        </template>
+
+        {{-- Sin resultados --}}
+        <div x-show="filtered.length === 0"
+             class="text-center py-12 bg-white dark:bg-gray-800">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-200 dark:text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <p class="text-sm text-gray-400 dark:text-gray-500"
+               x-text="search ? 'Sin resultados para &quot;' + search + '&quot;' : 'No hay alumnos registrados.'"></p>
+        </div>
+
+    </div>
+</div>
+@endsection

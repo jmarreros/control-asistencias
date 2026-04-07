@@ -1,0 +1,128 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="bg-purple-600 px-4 pt-6 pb-4 flex items-center gap-3">
+    <a href="{{ route('clases.index') }}" class="text-white">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+    </a>
+    <h1 class="text-xl font-bold text-white">Nuevo Curso</h1>
+</div>
+
+<form method="POST" action="{{ route('clases.store') }}" class="p-4 space-y-4">
+    @csrf
+
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre del curso *</label>
+        <input type="text" name="name" value="{{ old('name') }}" required autofocus
+               placeholder="Ej: Salsa Principiantes"
+               class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base
+                      bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                      focus:outline-none focus:ring-2 focus:ring-purple-500 @error('name') border-red-400 @enderror">
+        @error('name')
+            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+        @enderror
+    </div>
+
+    {{-- Horario --}}
+    @php
+        $daysList = ['lun' => 'Lun', 'mar' => 'Mar', 'mie' => 'Mié', 'jue' => 'Jue', 'vie' => 'Vie', 'sab' => 'Sáb', 'dom' => 'Dom'];
+        $oldSchedule = old('schedule', []);
+    @endphp
+    @php
+        $emptyTimes = array_fill_keys(array_keys($daysList), ['start' => '', 'end' => '']);
+        $initTimes  = array_merge($emptyTimes, array_map(fn($v) => is_array($v) ? $v : ['start' => $v, 'end' => ''], $oldSchedule));
+    @endphp
+    <div x-data="scheduleSelector({{ Js::from(array_keys(array_filter($oldSchedule))) }}, {{ Js::from($initTimes) }})">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Horario</label>
+
+        <div class="flex gap-1.5 flex-wrap mb-3">
+            @foreach($daysList as $key => $label)
+                <button type="button" @click="toggle('{{ $key }}')"
+                        :class="selected.includes('{{ $key }}')
+                            ? 'bg-purple-600 text-white border-purple-600'
+                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600'"
+                        class="px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors">
+                    {{ $label }}
+                </button>
+            @endforeach
+        </div>
+
+        <div class="space-y-2">
+            @foreach($daysList as $key => $label)
+                <div x-show="selected.includes('{{ $key }}')" class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-300 w-8">{{ $label }}</span>
+                    <input type="time" name="schedule[{{ $key }}][start]"
+                           x-model="times['{{ $key }}'].start"
+                           @change="propagate('{{ $key }}')"
+                           class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm
+                                  bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                                  focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <span class="text-gray-400 text-sm">–</span>
+                    <input type="time" name="schedule[{{ $key }}][end]"
+                           x-model="times['{{ $key }}'].end"
+                           class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm
+                                  bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                                  focus:outline-none focus:ring-2 focus:ring-purple-500">
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+        <textarea name="description" rows="3" placeholder="Descripción opcional..."
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-base
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+                         focus:outline-none focus:ring-2 focus:ring-purple-500">{{ old('description') }}</textarea>
+    </div>
+
+    <div class="pt-2">
+        <button type="submit"
+                class="w-full bg-purple-600 text-white font-bold py-4 rounded-xl text-lg">
+            Crear curso
+        </button>
+    </div>
+</form>
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('scheduleSelector', (initialSelected, initialTimes) => ({
+        selected: initialSelected,
+        times: initialTimes,
+        toggle(day) {
+            if (this.selected.includes(day)) {
+                this.selected = this.selected.filter(function(d) { return d !== day; });
+                this.times[day] = { start: '', end: '' };
+            } else {
+                this.selected.push(day);
+                var ref = this.getRef(day);
+                this.times[day].start = ref.start;
+                this.times[day].end   = ref.end;
+            }
+        },
+        getRef(excludeDay) {
+            for (var i = 0; i < this.selected.length; i++) {
+                var d = this.selected[i];
+                if (d !== excludeDay && this.times[d].start) {
+                    return { start: this.times[d].start, end: this.times[d].end };
+                }
+            }
+            return { start: '18:00', end: '' };
+        },
+        propagate(day) {
+            var val = this.times[day];
+            if (!val.start) return;
+            for (var i = 0; i < this.selected.length; i++) {
+                var d = this.selected[i];
+                if (d !== day && !this.times[d].start) {
+                    this.times[d].start = val.start;
+                    this.times[d].end   = val.end;
+                }
+            }
+        }
+    }));
+});
+</script>
+@endsection
