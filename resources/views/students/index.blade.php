@@ -27,7 +27,7 @@
     <div class="bg-black/30 backdrop-blur-sm border-b border-white/10 px-4 pt-6 pb-4">
         <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
-                <img src="{{ asset('images/logo-xs.jpg') }}" class="w-9 h-9 object-contain rounded-full shrink-0" alt="Logo">
+                <a href="{{ route('dashboard') }}"><img src="{{ asset('images/logo-xs.jpg') }}" class="w-9 h-9 object-contain rounded-full shrink-0" alt="Logo"></a>
                 <h1 class="text-xl font-bold text-white">Alumnos</h1>
             </div>
             <a href="{{ route('students.create') }}"

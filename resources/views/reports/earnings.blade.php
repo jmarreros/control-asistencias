@@ -8,7 +8,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
         </a>
-        <img src="{{ asset('images/logo-xs.jpg') }}" class="w-8 h-8 object-contain rounded-full shrink-0" alt="Logo">
+        <a href="{{ route('dashboard') }}"><img src="{{ asset('images/logo-xs.jpg') }}" class="w-8 h-8 object-contain rounded-full shrink-0" alt="Logo"></a>
         <div>
             <h1 class="text-xl font-bold text-white">Ganancias</h1>
             <p class="text-white/60 text-sm">Planes registrados en el período</p>
@@ -54,6 +54,31 @@
         <p class="text-xs text-white/40 mt-1">{{ $plans->count() }} {{ Str::plural('plan', $plans->count()) }} con precio registrado</p>
     </div>
 
+    {{-- Desglose por promoción --}}
+    @php $withPromo = $plans->whereNotNull('promotion'); @endphp
+    @if($withPromo->isNotEmpty())
+        <div>
+            <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-2">Promociones aplicadas</h2>
+            <div class="space-y-1.5">
+                @foreach($withPromo->groupBy('promotion') as $key => $group)
+                    @php
+                        $promoColors = [
+                            'promo_10'  => 'bg-blue-500/15 border-blue-400/25 text-blue-300',
+                            'promo_20'  => 'bg-violet-500/15 border-violet-400/25 text-violet-300',
+                            'promo_30'  => 'bg-orange-500/15 border-orange-400/25 text-orange-300',
+                            'promo_2x1' => 'bg-pink-500/15 border-pink-400/25 text-pink-300',
+                        ];
+                        $colorClass = $promoColors[$key] ?? 'bg-white/10 border-white/15 text-white/60';
+                    @endphp
+                    <div class="flex items-center justify-between rounded-xl px-4 py-2.5 border backdrop-blur-sm {{ $colorClass }}">
+                        <span class="text-sm font-semibold">{{ $group->first()->promotionLabel() }}</span>
+                        <span class="text-xs opacity-70">{{ $group->count() }} {{ Str::plural('plan', $group->count()) }} · S/ {{ number_format($group->sum('price'), 2) }}</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     {{-- Desglose por tipo de plan --}}
     @if($byQuota->isNotEmpty())
         <div>
@@ -79,15 +104,35 @@
         @if($plans->isNotEmpty())
             <div class="space-y-2">
                 @foreach($plans as $plan)
-                    <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/15 flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-white">{{ $plan->student->name }}</p>
-                            <p class="text-xs text-white/40">
-                                {{ $plan->class_quota === 'full' ? 'Full' : $plan->class_quota . ' clases' }}
-                                · {{ \Carbon\Carbon::parse($plan->start_date)->locale('es')->isoFormat('D MMM YY') }}
-                            </p>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/15">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-white">{{ $plan->student->name }}</p>
+                                <p class="text-xs text-white/40">
+                                    {{ $plan->class_quota === 'full' ? 'Full' : $plan->class_quota . ' clases' }}
+                                    · {{ \Carbon\Carbon::parse($plan->start_date)->locale('es')->isoFormat('D MMM YY') }}
+                                </p>
+                                <p class="text-xs text-white/30">
+                                    Registrado: {{ $plan->created_at->locale('es')->isoFormat('D MMM YYYY') }}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-base font-bold text-emerald-400">S/ {{ number_format($plan->price, 2) }}</p>
+                                @if($plan->promotion)
+                                    @php
+                                        $promoColors = [
+                                            'promo_10'  => 'bg-blue-500/20 text-blue-300',
+                                            'promo_20'  => 'bg-violet-500/20 text-violet-300',
+                                            'promo_30'  => 'bg-orange-500/20 text-orange-300',
+                                            'promo_2x1' => 'bg-pink-500/20 text-pink-300',
+                                        ];
+                                    @endphp
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full mt-1 inline-block {{ $promoColors[$plan->promotion] ?? 'bg-white/10 text-white/50' }}">
+                                        {{ $plan->promotionLabel() }}
+                                    </span>
+                                @endif
+                            </div>
                         </div>
-                        <p class="text-base font-bold text-emerald-400">S/ {{ number_format($plan->price, 2) }}</p>
                     </div>
                 @endforeach
             </div>

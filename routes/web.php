@@ -8,18 +8,33 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\PinController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\StudentAuthController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentPortalController;
 use Illuminate\Support\Facades\Route;
 
-// Autenticación PIN
+// Raíz → portal alumno
+Route::get('/', fn() => redirect()->route('student.login'));
+
+// --- Portal del alumno ---
+Route::get('/student/login', [StudentAuthController::class, 'show'])->name('student.login');
+Route::post('/student/login', [StudentAuthController::class, 'authenticate'])->name('student.login.post');
+Route::post('/student/logout', [StudentAuthController::class, 'logout'])->name('student.logout');
+
+Route::middleware('check.student')->group(function () {
+    Route::get('/student', [StudentPortalController::class, 'index'])->name('student.dashboard');
+    Route::get('/student/clase/{clase}', [StudentPortalController::class, 'byClase'])->name('student.clase');
+});
+
+// --- Autenticación PIN (admin) ---
 Route::get('/login', [PinController::class, 'show'])->name('login');
 Route::post('/login', [PinController::class, 'authenticate'])->name('login.post');
 Route::post('/logout', [PinController::class, 'logout'])->name('logout');
 
-// Rutas protegidas por PIN
+// --- Rutas admin protegidas por PIN ---
 Route::middleware('check.pin')->group(function () {
 
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/admin', [DashboardController::class, 'index'])->name('dashboard');
 
     // Alumnos
     Route::resource('students', StudentController::class)

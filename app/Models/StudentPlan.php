@@ -4,10 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentPlan extends Model
 {
-    protected $fillable = ['student_id', 'start_date', 'end_date', 'class_quota', 'price'];
+    use SoftDeletes;
+
+    protected $fillable = ['student_id', 'start_date', 'end_date', 'class_quota', 'price', 'promotion'];
+
+    const PROMOTION_LABELS = [
+        'promo_10'  => 'Descuento 10%',
+        'promo_20'  => 'Descuento 20%',
+        'promo_30'  => 'Descuento 30%',
+        'promo_2x1' => 'Promoción 2x1',
+    ];
+
+    public function promotionLabel(): ?string
+    {
+        return self::PROMOTION_LABELS[$this->promotion] ?? null;
+    }
 
     protected $casts = ['price' => 'decimal:2'];
 

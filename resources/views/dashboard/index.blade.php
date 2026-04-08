@@ -4,7 +4,7 @@
 <div class="p-4">
     <div class="flex items-center justify-between mb-6 pt-2">
         <div class="flex items-center gap-2">
-            <img src="{{ asset('images/logo-xs.jpg') }}" class="w-9 h-9 object-contain rounded-full shrink-0" alt="Logo">
+            <a href="{{ route('dashboard') }}"><img src="{{ asset('images/logo-xs.jpg') }}" class="w-9 h-9 object-contain rounded-full shrink-0" alt="Logo"></a>
             <h1 class="text-xl font-bold text-white">Salsa Latin Motion</h1>
             <p class="text-white/60 text-sm">{{ now()->locale('es')->isoFormat('dddd D [de] MMMM') }}</p>
         </div>

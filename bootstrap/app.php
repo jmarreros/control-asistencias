@@ -12,7 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'check.pin' => \App\Http\Middleware\CheckPin::class,
+            'check.pin'     => \App\Http\Middleware\CheckPin::class,
+            'check.student' => \App\Http\Middleware\CheckStudentAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

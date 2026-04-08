@@ -16,7 +16,14 @@ class SettingController extends Controller
             'price_full' => Setting::get('price_full', 190),
         ];
 
-        return view('settings.edit', compact('prices'));
+        $promos = [
+            'promo_10'  => (bool) Setting::get('promo_10',  0),
+            'promo_20'  => (bool) Setting::get('promo_20',  0),
+            'promo_30'  => (bool) Setting::get('promo_30',  0),
+            'promo_2x1' => (bool) Setting::get('promo_2x1', 0),
+        ];
+
+        return view('settings.edit', compact('prices', 'promos'));
     }
 
     public function update(Request $request)
@@ -32,6 +39,11 @@ class SettingController extends Controller
         Setting::set('price_12h',  $request->price_12h);
         Setting::set('price_16h',  $request->price_16h);
         Setting::set('price_full', $request->price_full);
+
+        Setting::set('promo_10',  $request->boolean('promo_10')  ? 1 : 0);
+        Setting::set('promo_20',  $request->boolean('promo_20')  ? 1 : 0);
+        Setting::set('promo_30',  $request->boolean('promo_30')  ? 1 : 0);
+        Setting::set('promo_2x1', $request->boolean('promo_2x1') ? 1 : 0);
 
         return redirect()->route('settings.edit')->with('success', 'Configuración guardada.');
     }

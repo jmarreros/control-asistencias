@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Student extends Model
 {
-    protected $fillable = ['name', 'phone', 'notes', 'active'];
+    protected $fillable = ['name', 'dni', 'phone', 'notes', 'active'];
 
     protected $casts = ['active' => 'boolean'];
 

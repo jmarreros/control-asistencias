@@ -34,6 +34,8 @@ class EarningsExport implements FromCollection, WithHeadings, WithMapping, WithS
             'Alumno',
             'Tipo de plan',
             'Monto (S/)',
+            'Promoción',
+            'Fecha registro',
             'Fecha inicio',
             'Fecha fin',
         ];
@@ -45,6 +47,8 @@ class EarningsExport implements FromCollection, WithHeadings, WithMapping, WithS
             $plan->student->name,
             $plan->class_quota === 'full' ? 'Full (ilimitado)' : $plan->class_quota . ' clases',
             number_format($plan->price, 2),
+            $plan->promotionLabel() ?? '—',
+            $plan->created_at->format('d/m/Y'),
             Carbon::parse($plan->start_date)->format('d/m/Y'),
             Carbon::parse($plan->end_date)->format('d/m/Y'),
         ];
