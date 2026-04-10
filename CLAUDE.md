@@ -36,7 +36,14 @@ Tipo `text`, cast `'array'` en el modelo. Formato JSON:
 Claves de día: `lun mar mie jue vie sab dom`.
 
 ### Tabla `settings`
-Clave primaria string. Registros actuales: `price_8h`, `price_12h`, `price_16h`, `price_full`, `promo_10`, `promo_20`, `promo_30`, `promo_2x1`.
+Clave primaria string. Registros actuales:
+
+| Grupo | Claves |
+|---|---|
+| Precios | `price_8h`, `price_12h`, `price_16h`, `price_24h`, `price_full1`, `price_full2` |
+| Promociones | `promo_10`, `promo_20`, `promo_30`, `promo_2x1` |
+| Notificaciones WA | `notify_days_before`, `notify_classes_remaining`, `notify_message`, `notify_expired_message` |
+
 Usar `Setting::get('key', default)` y `Setting::set('key', value)`.
 
 ### Columna `promotion` en `student_plans`
@@ -66,8 +73,8 @@ Guardadas como string `YYYY-MM-DD` (sin cast a date en el modelo). Usar siempre 
 ### `StudentPlan`
 - `fillable`: student_id, start_date, end_date, class_quota, price, promotion
 - `casts`: price → decimal:2
-- Trait: `SoftDeletes`
-- `class_quota`: string — valores `'8' | '12' | '16' | 'full'`
+- Traits: `HasFactory`, `SoftDeletes`
+- `class_quota`: string — valores `'8' | '12' | '16' | '24' | 'full1' | 'full2'`
 - `promotion`: string nullable — valores `'promo_10' | 'promo_20' | 'promo_30' | 'promo_2x1' | null`
 - `PROMOTION_LABELS`: constante array que mapea clave → etiqueta legible
 - Métodos: `status()` → `'ok' | 'exhausted' | 'expired' | 'pending'`, `classesUsed()`, `classesRemaining()` (null si full), `canAttend()`, `promotionLabel(): ?string`
@@ -189,8 +196,9 @@ var student = this.students[this.students.length - 1]; // proxy reactivo
 - `addStudent`: inscribe al alumno con `syncWithoutDetaching` y marca presente
 
 ### Plan de alumno
-- `class_quota` acepta `'8' | '12' | '16' | 'full'` (string, no int)
+- `class_quota` acepta `'8' | '12' | '16' | '24' | 'full1' | 'full2'` (string, no int)
 - `classesUsed()` cuenta asistencias `present=true` dentro del rango de fechas del plan
+- `classesRemaining()` retorna `null` para planes `full1`/`full2`, entero para los demás
 - `status()` retorna: `pending` (no iniciado), `ok` (activo), `exhausted` (cuota agotada), `expired` (vencido)
 - Al cancelar un plan se usa soft delete — queda en historial con badge "Cancelado"
 - El botón "Cancelar plan" solo aparece en planes con status `ok` o `pending`
@@ -216,7 +224,16 @@ var student = this.students[this.students.length - 1]; // proxy reactivo
 - Retorna HTML — usar siempre `{!! $clase->scheduleText() !!}`, nunca `{{ }}`
 
 ### Precios (Settings)
-Cuatro claves: `price_8h` (120), `price_12h` (150), `price_16h` (170), `price_full` (190).
+Seis claves: `price_8h` (120), `price_12h` (150), `price_16h` (170), `price_24h` (200), `price_full1` (190), `price_full2` (210).
+
+### Notificaciones WhatsApp (Settings)
+- `notify_days_before` (default 3): umbral de días para marcar un plan como "por vencer"
+- `notify_classes_remaining` (default 1): umbral de clases restantes para alertar
+- `notify_message`: plantilla del mensaje; variables `{nombre}`, `{clases}`, `{fecha}`
+- `notify_expired_message`: plantilla para plan vencido; variables `{nombre}`, `{fecha}`
+- `StudentController@index` calcula `isExpiring`, `waUrl` y `waUrlExpired` para cada alumno y los expone al componente Alpine de la vista
+- Teléfono normalizado: se quitan no-dígitos; si quedan 9 dígitos se antepone `51` (Perú)
+- URL generada: `https://wa.me/{phone}?text={encoded_message}`
 
 ---
 
@@ -232,7 +249,7 @@ app/
       EnrollmentController.php
       PinController.php              ← auth admin por PIN
       ReportController.php
-      SettingController.php          ← precios + promociones
+      SettingController.php          ← precios + promociones + notificaciones WA
       StudentAuthController.php      ← auth alumno por DNI
       StudentController.php
       StudentPlanController.php      ← fechas default, promociones activas
@@ -259,15 +276,28 @@ resources/views/
     index.blade.php                  ← lista de clases para tomar asistencia
     take.blade.php                   ← pantalla principal (Alpine.js, toggle, modal)
   students/
-    index.blade.php                  ← búsqueda client-side Alpine, badges de plan
+    index.blade.php                  ← tabs Alpine: Todos · Activos · Por vencer · Vencido; botones WhatsApp
     create.blade.php · edit.blade.php · plans.blade.php
   clases/
     index.blade.php · create.blade.php · edit.blade.php · enroll.blade.php
-  settings/edit.blade.php            ← precios + sección de promociones
+  settings/edit.blade.php            ← precios + promociones + notificaciones WhatsApp
   reports/
     index.blade.php · clase.blade.php · clase-student.blade.php
     student.blade.php · earnings.blade.php
 
 routes/web.php
 bootstrap/app.php                    ← alias middleware check.pin y check.student
+
+database/
+  factories/
+    ClaseFactory.php · StudentFactory.php · StudentPlanFactory.php
+  seeders/
+    DatabaseSeeder.php               ← borra alumnos/planes/asistencias, conserva cursos; genera historial
+
+tests/Feature/
+  ClaseControllerTest.php · EnrollmentControllerTest.php
+  StudentControllerTest.php · StudentPlanControllerTest.php
+  AttendanceControllerTest.php
+tests/Unit/
+  ClaseModelTest.php
 ```

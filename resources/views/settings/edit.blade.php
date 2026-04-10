@@ -80,6 +80,68 @@
         @endforeach
     </div>
 
+    {{-- Notificaciones WhatsApp --}}
+    <div class="rounded-xl overflow-hidden border border-white/20">
+        <div class="px-4 py-3 border-b border-white/10">
+            <p class="text-xs font-semibold text-white/50 uppercase tracking-wide">Notificaciones WhatsApp</p>
+            <p class="text-xs text-white/30 mt-0.5">Filtro "Por vencer" en la lista de alumnos</p>
+        </div>
+
+        <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <div>
+                <label for="notify_days_before" class="text-sm font-medium text-white/80">Días antes del vencimiento</label>
+                <p class="text-xs text-white/40 mt-0.5">Avisar cuando falten N días o menos</p>
+            </div>
+            <input type="number"
+                   id="notify_days_before"
+                   name="notify_days_before"
+                   value="{{ old('notify_days_before', $notify['notify_days_before']) }}"
+                   min="0" max="30"
+                   class="w-16 text-right text-sm font-semibold text-white bg-white/10
+                          border border-white/20 rounded-lg px-2 py-1.5
+                          focus:outline-none focus:ring-2 focus:ring-white/30">
+        </div>
+
+        <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <div>
+                <label for="notify_classes_remaining" class="text-sm font-medium text-white/80">Clases restantes</label>
+                <p class="text-xs text-white/40 mt-0.5">Avisar cuando queden N clases o menos</p>
+            </div>
+            <input type="number"
+                   id="notify_classes_remaining"
+                   name="notify_classes_remaining"
+                   value="{{ old('notify_classes_remaining', $notify['notify_classes_remaining']) }}"
+                   min="0" max="10"
+                   class="w-16 text-right text-sm font-semibold text-white bg-white/10
+                          border border-white/20 rounded-lg px-2 py-1.5
+                          focus:outline-none focus:ring-2 focus:ring-white/30">
+        </div>
+
+        <div class="px-4 py-3">
+            <label for="notify_message" class="text-sm font-medium text-white/80 block mb-1.5">Mensaje</label>
+            <p class="text-xs text-white/40 mb-2">Variables disponibles: <code class="text-amber-400">{nombre}</code> · <code class="text-amber-400">{clases}</code> · <code class="text-amber-400">{fecha}</code></p>
+            <textarea id="notify_message"
+                      name="notify_message"
+                      rows="3"
+                      maxlength="255"
+                      class="w-full text-sm text-white bg-white/10 border border-white/20 rounded-lg px-3 py-2
+                             focus:outline-none focus:ring-2 focus:ring-white/30 resize-none"
+                      placeholder="Hola {nombre}, tu plan vence el {fecha}...">{{ old('notify_message', $notify['notify_message']) }}</textarea>
+        </div>
+
+        <div class="px-4 py-3 border-t border-white/10">
+            <label for="notify_expired_message" class="text-sm font-medium text-white/80 block mb-1.5">Mensaje para plan vencido</label>
+            <p class="text-xs text-white/40 mb-2">Variables disponibles: <code class="text-amber-400">{nombre}</code> · <code class="text-amber-400">{fecha}</code></p>
+            <textarea id="notify_expired_message"
+                      name="notify_expired_message"
+                      rows="3"
+                      maxlength="255"
+                      class="w-full text-sm text-white bg-white/10 border border-white/20 rounded-lg px-3 py-2
+                             focus:outline-none focus:ring-2 focus:ring-white/30 resize-none"
+                      placeholder="Hola {nombre}, tu plan venció el {fecha}...">{{ old('notify_expired_message', $notify['notify_expired_message']) }}</textarea>
+        </div>
+    </div>
+
     <button type="submit"
             class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl text-base">
         Guardar configuración

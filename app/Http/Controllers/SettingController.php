@@ -25,18 +25,29 @@ class SettingController extends Controller
             'promo_2x1' => (bool) Setting::get('promo_2x1', 0),
         ];
 
-        return view('settings.edit', compact('prices', 'promos'));
+        $notify = [
+            'notify_days_before'       => (int) Setting::get('notify_days_before', 3),
+            'notify_classes_remaining' => (int) Setting::get('notify_classes_remaining', 1),
+            'notify_message'           => Setting::get('notify_message', ''),
+            'notify_expired_message'   => Setting::get('notify_expired_message', ''),
+        ];
+
+        return view('settings.edit', compact('prices', 'promos', 'notify'));
     }
 
     public function update(Request $request)
     {
         $request->validate([
-            'price_8h'   => 'required|numeric|min:0',
-            'price_12h'  => 'required|numeric|min:0',
-            'price_16h'  => 'required|numeric|min:0',
-            'price_24h'   => 'required|numeric|min:0',
-            'price_full1' => 'required|numeric|min:0',
-            'price_full2' => 'required|numeric|min:0',
+            'price_8h'                 => 'required|numeric|min:0',
+            'price_12h'                => 'required|numeric|min:0',
+            'price_16h'                => 'required|numeric|min:0',
+            'price_24h'                => 'required|numeric|min:0',
+            'price_full1'              => 'required|numeric|min:0',
+            'price_full2'              => 'required|numeric|min:0',
+            'notify_days_before'       => 'required|integer|min:0|max:30',
+            'notify_classes_remaining' => 'required|integer|min:0|max:10',
+            'notify_message'           => 'required|string|max:255',
+            'notify_expired_message'   => 'required|string|max:255',
         ]);
 
         Setting::set('price_8h',   $request->price_8h);
@@ -50,6 +61,11 @@ class SettingController extends Controller
         Setting::set('promo_20',  $request->boolean('promo_20')  ? 1 : 0);
         Setting::set('promo_30',  $request->boolean('promo_30')  ? 1 : 0);
         Setting::set('promo_2x1', $request->boolean('promo_2x1') ? 1 : 0);
+
+        Setting::set('notify_days_before',       $request->notify_days_before);
+        Setting::set('notify_classes_remaining', $request->notify_classes_remaining);
+        Setting::set('notify_message',           $request->notify_message);
+        Setting::set('notify_expired_message',   $request->notify_expired_message);
 
         return redirect()->route('settings.edit')->with('success', 'Configuración guardada.');
     }

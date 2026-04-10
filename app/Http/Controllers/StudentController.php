@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Setting;
 use App\Models\Student;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
@@ -11,7 +13,51 @@ class StudentController extends Controller
     {
         $students = Student::with('currentPlan')->orderBy('name')->get();
 
-        $students->each(fn($s) => $s->planStatus = $s->currentPlan?->status() ?? 'no_plan');
+        $daysBefore          = (int) Setting::get('notify_days_before', 3);
+        $classesThreshold    = (int) Setting::get('notify_classes_remaining', 1);
+        $messageTemplate     = Setting::get('notify_message',         'Hola {nombre}, tu plan está por vencer. Te quedan {clases} clase(s) y vence el {fecha}. ¡Renueva ahora y sigue bailando con nosotros!');
+        $expiredTemplate     = Setting::get('notify_expired_message', 'Hola {nombre}, tu plan venció el {fecha}. ¡Renueva ahora y sigue bailando con nosotros!');
+
+        $students->each(function ($s) use ($daysBefore, $classesThreshold, $messageTemplate, $expiredTemplate) {
+            $plan = $s->currentPlan;
+            $s->planStatus      = $plan?->status() ?? 'no_plan';
+            $s->isExpiring      = false;
+            $s->waUrl           = null;
+            $s->waUrlExpired    = null;
+            $s->planEndDate     = $plan ? Carbon::parse($plan->end_date)->format('d/m/Y') : null;
+            $s->planClassesLeft = $plan ? $plan->classesRemaining() : null;
+
+            if (!$plan) return;
+
+            $firstName = explode(' ', trim($s->name))[0];
+            $fecha     = Carbon::parse($plan->end_date)->format('d/m/Y');
+            $phone     = $s->phone ? preg_replace('/\D/', '', $s->phone) : null;
+            if ($phone && strlen($phone) === 9) $phone = '51' . $phone;
+
+            $status = $plan->status();
+
+            // Por vencer
+            if (in_array($status, ['ok', 'exhausted'])) {
+                $remaining = $plan->classesRemaining();
+                $daysLeft  = (int) now()->startOfDay()->diffInDays(Carbon::parse($plan->end_date), false);
+
+                if (($remaining !== null && $remaining <= $classesThreshold) || $daysLeft <= $daysBefore) {
+                    $s->isExpiring = true;
+
+                    if ($phone) {
+                        $clases  = $remaining !== null ? $remaining : 'ilimitadas';
+                        $message = str_replace(['{nombre}', '{clases}', '{fecha}'], [$firstName, $clases, $fecha], $messageTemplate);
+                        $s->waUrl = 'https://wa.me/' . $phone . '?text=' . rawurlencode($message);
+                    }
+                }
+            }
+
+            // Vencido
+            if (in_array($status, ['expired', 'exhausted']) && $phone) {
+                $message = str_replace(['{nombre}', '{fecha}'], [$firstName, $fecha], $expiredTemplate);
+                $s->waUrlExpired = 'https://wa.me/' . $phone . '?text=' . rawurlencode($message);
+            }
+        });
 
         return view('students.index', compact('students'));
     }
