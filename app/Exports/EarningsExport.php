@@ -45,7 +45,7 @@ class EarningsExport implements FromCollection, WithHeadings, WithMapping, WithS
     {
         return [
             $plan->student->name,
-            $plan->class_quota === 'full' ? 'Full (ilimitado)' : $plan->class_quota . ' clases',
+            (['full1' => 'Full-1 (ilimitado)', 'full2' => 'Full-2 (ilimitado)'][$plan->class_quota] ?? ($plan->class_quota . ' clases')),
             number_format($plan->price, 2),
             $plan->promotionLabel() ?? '—',
             $plan->created_at->format('d/m/Y'),

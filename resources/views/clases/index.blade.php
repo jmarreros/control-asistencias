@@ -8,7 +8,7 @@
             <h1 class="text-xl font-bold text-white">Cursos</h1>
         </div>
         <a href="{{ route('clases.create') }}"
-           class="bg-white/20 border border-white/30 text-white font-semibold text-sm px-4 py-2 rounded-lg">
+           class="bg-emerald-600 text-white font-semibold text-sm px-4 py-2 rounded-lg">
             + Nuevo
         </a>
     </div>

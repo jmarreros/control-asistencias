@@ -27,7 +27,7 @@
                    class="w-full text-sm rounded-lg px-3 py-2 bg-white/15 text-white border border-white/20 focus:outline-none">
         </div>
         <button type="submit"
-                class="bg-white text-gray-900 font-semibold text-sm px-4 py-2 rounded-lg whitespace-nowrap">
+                class="bg-green-500 text-white font-semibold text-sm px-4 py-2 rounded-lg whitespace-nowrap">
             Ver
         </button>
     </form>
@@ -45,7 +45,7 @@
                             ? 'bg-yellow-500/20 text-yellow-300'
                             : 'bg-red-500/20 text-red-300');
                 @endphp
-                <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/15 flex items-center justify-between">
+                <div class="rounded-xl px-4 py-3 border border-white/20 flex items-center justify-between">
                     <div>
                         <p class="font-medium text-white">{{ $row['clase']->name }}</p>
                         <p class="text-xs text-white/50">{{ $row['present'] }} / {{ $row['total'] }} clases</p>
@@ -61,7 +61,7 @@
     <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Detalle</h2>
     <div class="space-y-2">
         @forelse($attendances as $att)
-            <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/15 flex items-center justify-between">
+            <div class="rounded-xl px-4 py-3 border border-white/20 flex items-center justify-between">
                 <div>
                     <p class="font-medium text-white text-sm">{{ $att->clase->name }}</p>
                     <p class="text-xs text-white/50">

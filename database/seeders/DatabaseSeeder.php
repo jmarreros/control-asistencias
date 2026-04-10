@@ -18,7 +18,8 @@ class DatabaseSeeder extends Seeder
         Setting::set('price_8h',   120);
         Setting::set('price_12h',  150);
         Setting::set('price_16h',  170);
-        Setting::set('price_full', 190);
+        Setting::set('price_full1', 190);
+        Setting::set('price_full2', 210);
 
         // Alumnos
         $students = collect([
@@ -82,14 +83,14 @@ class DatabaseSeeder extends Seeder
         // Hace 3 meses (enero)
         $this->crearPlan($students[0], '2026-01-06', '2026-02-05', '12', 150);   // Ana
         $this->crearPlan($students[1], '2026-01-06', '2026-02-05', '8',  120);   // Carlos
-        $this->crearPlan($students[2], '2026-01-06', '2026-02-05', 'full', 190); // María
+        $this->crearPlan($students[2], '2026-01-06', '2026-02-05', 'full1', 190); // María
         $this->crearPlan($students[3], '2026-01-13', '2026-02-12', '8',  100);   // Luis (descuento)
         $this->crearPlan($students[4], '2026-01-13', '2026-02-12', '12', 150);   // Sofia
 
         // Hace 2 meses (febrero)
         $this->crearPlan($students[0], '2026-02-06', '2026-03-05', '12', 150);   // Ana renovación
         $this->crearPlan($students[1], '2026-02-06', '2026-03-05', '12', 150);   // Carlos sube de plan
-        $this->crearPlan($students[2], '2026-02-06', '2026-03-05', 'full', 190); // María
+        $this->crearPlan($students[2], '2026-02-06', '2026-03-05', 'full1', 190); // María
         $this->crearPlan($students[5], '2026-02-10', '2026-03-09', '8',  120);   // Diego nuevo
         $this->crearPlan($students[6], '2026-02-10', '2026-03-09', '16', 160);   // Valentina (promo)
         $this->crearPlan($students[7], '2026-02-17', '2026-03-16', '8',  120);   // Rodrigo
@@ -97,7 +98,7 @@ class DatabaseSeeder extends Seeder
         // Mes pasado (marzo)
         $this->crearPlan($students[0], '2026-03-06', '2026-04-05', '16', 170);   // Ana
         $this->crearPlan($students[1], '2026-03-06', '2026-04-05', '12', 150);   // Carlos
-        $this->crearPlan($students[2], '2026-03-06', '2026-04-05', 'full', 190); // María
+        $this->crearPlan($students[2], '2026-03-06', '2026-04-05', 'full1', 190); // María
         $this->crearPlan($students[3], '2026-03-10', '2026-04-09', '12', 140);   // Luis (promo)
         $this->crearPlan($students[4], '2026-03-10', '2026-04-09', '12', 150);   // Sofia
         $this->crearPlan($students[5], '2026-03-10', '2026-04-09', '8',  120);   // Diego
@@ -107,7 +108,7 @@ class DatabaseSeeder extends Seeder
         // Mes actual (abril — planes vigentes)
         $this->crearPlan($students[0], '2026-04-07', '2026-05-06', '16', 170);   // Ana
         $this->crearPlan($students[1], '2026-04-07', '2026-05-06', '12', 150);   // Carlos
-        $this->crearPlan($students[2], '2026-04-07', '2026-05-06', 'full', 190); // María
+        $this->crearPlan($students[2], '2026-04-07', '2026-05-06', 'full1', 190); // María
         $this->crearPlan($students[4], '2026-04-07', '2026-05-06', '12', 150);   // Sofia
         $this->crearPlan($students[5], '2026-04-07', '2026-05-06', '8',  120);   // Diego
         $this->crearPlan($students[6], '2026-04-07', '2026-05-06', 'full', 180); // Valentina (promo)

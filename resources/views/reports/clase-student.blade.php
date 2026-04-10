@@ -22,7 +22,7 @@
     <p class="text-xs text-white/50 mb-3">{{ $attended->count() }} {{ $attended->count() == 1 ? 'clase asistida' : 'clases asistidas' }} en el período</p>
 
     @forelse($attended as $att)
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 mb-2 border border-white/15">
+        <div class="rounded-xl px-4 py-3 mb-2 border border-white/20">
             <p class="text-sm text-white">
                 {{ \Carbon\Carbon::parse($att->date)->locale('es')->isoFormat('dddd D [de] MMMM [de] YYYY') }}
             </p>

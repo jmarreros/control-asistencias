@@ -27,7 +27,7 @@
                    class="w-full text-sm rounded-lg px-3 py-2 bg-white/15 text-white border border-white/20 focus:outline-none">
         </div>
         <button type="submit"
-                class="bg-white text-gray-900 font-semibold text-sm px-4 py-2 rounded-lg whitespace-nowrap">
+                class="bg-green-500 text-white font-semibold text-sm px-4 py-2 rounded-lg whitespace-nowrap">
             Ver
         </button>
     </form>
@@ -63,14 +63,14 @@
                 @foreach($withPromo->groupBy('promotion') as $key => $group)
                     @php
                         $promoColors = [
-                            'promo_10'  => 'bg-blue-500/15 border-blue-400/25 text-blue-300',
-                            'promo_20'  => 'bg-violet-500/15 border-violet-400/25 text-violet-300',
-                            'promo_30'  => 'bg-orange-500/15 border-orange-400/25 text-orange-300',
-                            'promo_2x1' => 'bg-pink-500/15 border-pink-400/25 text-pink-300',
+                            'promo_10'  => 'border-blue-400/40 text-blue-300',
+                            'promo_20'  => 'border-violet-400/40 text-violet-300',
+                            'promo_30'  => 'border-orange-400/40 text-orange-300',
+                            'promo_2x1' => 'border-pink-400/40 text-pink-300',
                         ];
-                        $colorClass = $promoColors[$key] ?? 'bg-white/10 border-white/15 text-white/60';
+                        $colorClass = $promoColors[$key] ?? 'border-white/20 text-white/60';
                     @endphp
-                    <div class="flex items-center justify-between rounded-xl px-4 py-2.5 border backdrop-blur-sm {{ $colorClass }}">
+                    <div class="flex items-center justify-between rounded-xl px-4 py-2.5 border {{ $colorClass }}">
                         <span class="text-sm font-semibold">{{ $group->first()->promotionLabel() }}</span>
                         <span class="text-xs opacity-70">{{ $group->count() }} {{ Str::plural('plan', $group->count()) }} · S/ {{ number_format($group->sum('price'), 2) }}</span>
                     </div>
@@ -84,11 +84,11 @@
         <div>
             <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-2">Por tipo de plan</h2>
             <div class="grid grid-cols-2 gap-2">
-                @foreach(['8', '12', '16', 'full'] as $quota)
+                @foreach(['8', '12', 'full1', '16', '24', 'full2'] as $quota)
                     @if(isset($byQuota[$quota]))
                         @php $q = $byQuota[$quota]; @endphp
-                        <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/15">
-                            <p class="text-xs text-white/50">{{ $quota === 'full' ? 'Full' : $quota . ' clases' }}</p>
+                        <div class="rounded-xl px-4 py-3 border border-white/20">
+                            <p class="text-xs text-white/50">{{ ['full1' => 'Full-1', 'full2' => 'Full-2'][$quota] ?? ($quota . ' clases') }}</p>
                             <p class="text-lg font-bold text-white">S/ {{ number_format($q['total'], 2) }}</p>
                             <p class="text-xs text-white/40">{{ $q['count'] }} {{ Str::plural('alumno', $q['count']) }}</p>
                         </div>
@@ -104,12 +104,12 @@
         @if($plans->isNotEmpty())
             <div class="space-y-2">
                 @foreach($plans as $plan)
-                    <div class="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/15">
+                    <div class="rounded-xl px-4 py-3 border border-white/20">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm font-medium text-white">{{ $plan->student->name }}</p>
                                 <p class="text-xs text-white/40">
-                                    {{ $plan->class_quota === 'full' ? 'Full' : $plan->class_quota . ' clases' }}
+                                    {{ ['full1' => 'Full-1', 'full2' => 'Full-2'][$plan->class_quota] ?? ($plan->class_quota . ' clases') }}
                                     · {{ \Carbon\Carbon::parse($plan->start_date)->locale('es')->isoFormat('D MMM YY') }}
                                 </p>
                                 <p class="text-xs text-white/30">

@@ -61,7 +61,7 @@
                 <div>
                     <p class="text-white/50 text-xs">Cuota</p>
                     <p class="font-medium text-white">
-                        {{ $currentPlan->class_quota === 'full' ? 'Full (ilimitado)' : $currentPlan->class_quota . ' clases' }}
+                        {{ ['full1' => 'Full-1 (ilimitado)', 'full2' => 'Full-2 (ilimitado)'][$currentPlan->class_quota] ?? ($currentPlan->class_quota . ' clases') }}
                     </p>
                 </div>
                 <div>
@@ -70,7 +70,7 @@
                         {{ $currentPlan->price !== null ? 'S/ ' . number_format($currentPlan->price, 2) : '—' }}
                     </p>
                 </div>
-                @if($currentPlan->class_quota !== 'full')
+                @if(!in_array($currentPlan->class_quota, ['full1', 'full2']))
                     <div>
                         <p class="text-white/50 text-xs">Restantes</p>
                         <p class="font-bold text-white">
@@ -91,23 +91,23 @@
                     <span class="text-xs font-semibold text-emerald-300">{{ $currentPlan->promotionLabel() }}</span>
                 </div>
             @endif
+
+            @if(in_array($currentPlan->status(), ['ok', 'pending']))
+                <div class="mt-3 pt-3 border-t border-white/10 flex justify-end">
+                    <form method="POST"
+                          action="{{ route('students.plans.destroy', [$student, $currentPlan]) }}"
+                          onsubmit="return confirm('¿Cancelar el plan actual? Quedará registrado en el historial.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="text-xs text-red-400/70 hover:text-red-400 transition-colors">
+                            Cancelar plan
+                        </button>
+                    </form>
+                </div>
+            @endif
         </div>
     @else
         <p class="text-sm text-white/40 mb-4">Sin plan registrado.</p>
-    @endif
-
-    {{-- Cancelar plan activo --}}
-    @if($currentPlan && in_array($currentPlan->status(), ['ok', 'pending']))
-        <form method="POST"
-              action="{{ route('students.plans.destroy', [$student, $currentPlan]) }}"
-              onsubmit="return confirm('¿Cancelar el plan actual? Quedará registrado en el historial.')">
-            @csrf
-            @method('DELETE')
-            <button type="submit"
-                    class="w-full text-red-400 border border-red-500/30 bg-red-500/10 font-medium py-2.5 rounded-xl text-sm mb-3">
-                Cancelar plan actual
-            </button>
-        </form>
     @endif
 
     {{-- Nuevo / Renovar plan --}}
@@ -126,72 +126,66 @@
               x-data="{
                   startDate: '{{ old('start_date', $defaultStartDate) }}',
                   endDate: '{{ old('end_date', $defaultEndDate) }}',
+                  quota: '{{ old('class_quota', '8') }}',
+                  prices: {{ json_encode($prices) }},
+                  promos: {{ json_encode($promos->map(fn($p, $k) => $p + ['key' => $k])->values()) }},
+                  promoColors: {
+                      'promo_10':  'border-blue-400 bg-blue-500/25 text-blue-300',
+                      'promo_20':  'border-violet-400 bg-violet-500/25 text-violet-300',
+                      'promo_30':  'border-orange-400 bg-orange-500/25 text-orange-300',
+                      'promo_2x1': 'border-pink-400 bg-pink-500/25 text-pink-300',
+                  },
+                  discount: 0,
+                  promoKey: '',
+                  price: '{{ old('price', $prices['8']) }}',
                   get dateError() {
                       return this.startDate && this.endDate && this.endDate < this.startDate;
+                  },
+                  calcEndDate() {
+                      if (!this.startDate) return;
+                      var days = ['16', '24', 'full2'].includes(this.quota) ? 40 : 20;
+                      var d = new Date(this.startDate + 'T00:00:00');
+                      var count = 0;
+                      while (true) {
+                          var dow = d.getDay();
+                          if (dow !== 0 && dow !== 6) count++;
+                          if (count === days) break;
+                          d.setDate(d.getDate() + 1);
+                      }
+                      this.endDate = d.toISOString().slice(0, 10);
+                  },
+                  updatePrice() {
+                      var base = this.prices[this.quota];
+                      this.price = this.discount > 0
+                          ? Math.round(base * (1 - this.discount / 100) * 100) / 100
+                          : base;
+                  },
+                  selectDiscount(promo) {
+                      if (this.discount === promo.discount) {
+                          this.discount = 0;
+                          this.promoKey = '';
+                      } else {
+                          this.discount = promo.discount;
+                          this.promoKey = promo.key;
+                      }
+                      this.updatePrice();
                   }
               }"
               @submit.prevent="if (!dateError) $el.submit()">
             @csrf
 
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-xs font-medium text-white/70 mb-1">Fecha inicio *</label>
-                    <input type="date" name="start_date" required
-                           x-model="startDate"
-                           :class="dateError ? 'border-red-400' : 'border-white/20'"
-                           class="w-full rounded-xl px-3 py-2.5 text-sm border
-                                  bg-white/10 backdrop-blur-sm text-white
-                                  focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-white/70 mb-1">Fecha fin *</label>
-                    <input type="date" name="end_date" required
-                           x-model="endDate"
-                           :class="dateError ? 'border-red-400' : 'border-white/20'"
-                           class="w-full rounded-xl px-3 py-2.5 text-sm border
-                                  bg-white/10 backdrop-blur-sm text-white
-                                  focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                </div>
-            </div>
-            <p x-show="dateError" class="text-red-400 text-xs -mt-1">
-                La fecha fin debe ser igual o posterior a la fecha inicio.
-            </p>
-
-            <div x-data="{
-                    quota: '{{ old('class_quota', '8') }}',
-                    prices: {{ json_encode($prices) }},
-                    promos: {{ json_encode($promos->map(fn($p, $k) => $p + ['key' => $k])->values()) }},
-                    discount: 0,
-                    promoKey: '',
-                    price: '{{ old('price', $prices['8']) }}',
-                    updatePrice() {
-                        var base = this.prices[this.quota];
-                        this.price = this.discount > 0
-                            ? Math.round(base * (1 - this.discount / 100) * 100) / 100
-                            : base;
-                    },
-                    selectDiscount(promo) {
-                        if (this.discount === promo.discount) {
-                            this.discount = 0;
-                            this.promoKey = '';
-                        } else {
-                            this.discount = promo.discount;
-                            this.promoKey = promo.key;
-                        }
-                        this.updatePrice();
-                    }
-                }">
+            <div>
                 <label class="block text-xs font-medium text-white/70 mb-1">Cantidad de clases *</label>
                 <div class="flex gap-2 w-full">
-                    @foreach(['8', '12', '16', 'full'] as $quota)
-                        <label class="cursor-pointer flex-1" @click="quota = '{{ $quota }}'; updatePrice()">
+                    @foreach(['8', '12', 'full1', '16', '24', 'full2'] as $quota)
+                        <label class="cursor-pointer flex-1" @click="quota = '{{ $quota }}'; updatePrice(); calcEndDate()">
                             <input type="radio" name="class_quota" value="{{ $quota }}"
                                    x-model="quota" class="sr-only">
                             <div class="text-center px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap"
                                  :class="quota === '{{ $quota }}'
                                      ? 'border-indigo-400 bg-indigo-500/30 text-indigo-300'
                                      : 'border-white/20 bg-white/10 text-white/60'">
-                                {{ $quota === 'full' ? 'Full' : $quota }}
+                                {{ ['full1' => 'Full-1', 'full2' => 'Full-2'][$quota] ?? $quota }}
                             </div>
                         </label>
                     @endforeach
@@ -199,6 +193,30 @@
                 @error('class_quota')
                     <p class="text-red-400 text-xs mt-1">{{ $message }}</p>
                 @enderror
+
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                        <label class="block text-xs font-medium text-white/70 mb-1">Fecha inicio *</label>
+                        <input type="date" name="start_date" required
+                               x-model="startDate" @change="calcEndDate()"
+                               :class="dateError ? 'border-red-400' : 'border-white/50'"
+                               class="w-full rounded-xl px-3 py-2.5 text-sm border
+                                      bg-white/10 text-white
+                                      focus:outline-none focus:border-indigo-400 focus:bg-white/15">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-white/70 mb-1">Fecha fin *</label>
+                        <input type="date" name="end_date" required
+                               x-model="endDate"
+                               :class="dateError ? 'border-red-400' : 'border-white/50'"
+                               class="w-full rounded-xl px-3 py-2.5 text-sm border
+                                      bg-white/10 text-white
+                                      focus:outline-none focus:border-indigo-400 focus:bg-white/15">
+                    </div>
+                </div>
+                <p x-show="dateError" class="text-red-400 text-xs mt-1">
+                    La fecha fin debe ser igual o posterior a la fecha inicio.
+                </p>
 
                 {{-- Promociones activas --}}
                 <template x-if="promos.length > 0">
@@ -209,7 +227,7 @@
                                 <button type="button"
                                         @click="selectDiscount(promo)"
                                         :class="discount === promo.discount
-                                            ? 'border-emerald-400 bg-emerald-500/25 text-emerald-300'
+                                            ? (promoColors[promo.key] || 'border-emerald-400 bg-emerald-500/25 text-emerald-300')
                                             : 'border-white/20 bg-white/10 text-white/60'"
                                         class="px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors">
                                     <span x-text="promo.label"></span>
@@ -227,9 +245,9 @@
                     <div class="relative">
                         <input type="number" name="price" step="0.01" min="0"
                                x-model="price"
-                               class="w-full rounded-xl px-3 py-2.5 text-sm border border-white/20
-                                      bg-white/10 backdrop-blur-sm text-white
-                                      focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                               class="w-full rounded-xl px-3 py-2.5 text-sm border border-white/50
+                                      bg-white/10 text-white
+                                      focus:outline-none focus:border-indigo-400 focus:bg-white/15">
                         <template x-if="discount > 0">
                             <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                                 <span class="text-xs text-white/40 line-through"
@@ -249,7 +267,7 @@
             <button type="submit"
                     :disabled="dateError"
                     :class="dateError ? 'opacity-50 cursor-not-allowed' : ''"
-                    class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm">
+                    class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm">
                 Guardar plan
             </button>
         </form>
@@ -271,7 +289,7 @@
                     <div class="flex items-start justify-between gap-2">
                         <div class="text-sm">
                             <p class="text-white font-medium">
-                                {{ $plan->class_quota === 'full' ? 'Full' : $plan->class_quota . ' clases' }}
+                                {{ ['full1' => 'Full-1', 'full2' => 'Full-2'][$plan->class_quota] ?? ($plan->class_quota . ' clases') }}
                                 @if($plan->price !== null)
                                     <span class="text-white/40 font-normal">· S/ {{ number_format($plan->price, 2) }}</span>
                                 @endif
@@ -281,7 +299,7 @@
                                 →
                                 {{ \Carbon\Carbon::parse($plan->end_date)->locale('es')->isoFormat('D MMM YY') }}
                             </p>
-                            @if($plan->class_quota !== 'full')
+                            @if(!in_array($plan->class_quota, ['full1', 'full2']))
                                 <p class="text-white/40 text-xs">
                                     {{ $plan->classesUsed() }} clases tomadas
                                 </p>

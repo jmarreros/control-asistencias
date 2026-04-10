@@ -27,7 +27,7 @@
         @php
             $used      = $plan->classesUsed();
             $remaining = $plan->classesRemaining();
-            $isFull    = $plan->class_quota === 'full';
+            $isFull    = in_array($plan->class_quota, ['full1', 'full2']);
             $cardBg    = match($planStatus) {
                 'ok'        => 'bg-emerald-500/20 border-emerald-400/40',
                 'pending'   => 'bg-blue-500/15 border-blue-400/30',

@@ -27,7 +27,7 @@
                    class="w-full text-sm rounded-lg px-3 py-2 bg-white/15 text-white border border-white/20 focus:outline-none">
         </div>
         <button type="submit"
-                class="bg-white text-gray-900 font-semibold text-sm px-4 py-2 rounded-lg whitespace-nowrap">
+                class="bg-green-500 text-white font-semibold text-sm px-4 py-2 rounded-lg whitespace-nowrap">
             Ver
         </button>
     </form>
@@ -55,7 +55,7 @@
                                 'text-orange-400' => $status === 'exhausted',
                                 'text-red-400'    => $status === 'expired',
                             ])>
-                                {{ $row['plan']->class_quota === 'full' ? 'Full' : $row['plan']->class_quota . ' clases' }}
+                                {{ ['full1' => 'Full-1', 'full2' => 'Full-2'][$row['plan']->class_quota] ?? ($row['plan']->class_quota . ' clases') }}
                                 ·
                                 {{ match($status) {
                                     'ok'        => 'Activo',

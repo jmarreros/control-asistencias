@@ -19,16 +19,18 @@
 <form method="POST" action="{{ route('settings.update') }}" class="p-4 space-y-4">
     @csrf
 
-    <div class="bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden border border-white/15">
-        <div class="px-4 py-3 bg-white/5 border-b border-white/10">
+    <div class="rounded-xl overflow-hidden border border-white/20">
+        <div class="px-4 py-3 border-b border-white/10">
             <p class="text-xs font-semibold text-white/50 uppercase tracking-wide">Precio por cantidad de horas</p>
         </div>
 
         @foreach([
-            'price_8h'   => '8 horas',
-            'price_12h'  => '12 horas',
-            'price_16h'  => '16 horas',
-            'price_full' => 'Full',
+            'price_8h'    => '8 horas',
+            'price_12h'   => '12 horas',
+            'price_full1' => 'Full-1',
+            'price_16h'   => '16 horas',
+            'price_24h'   => '24 horas',
+            'price_full2' => 'Full-2',
         ] as $key => $label)
         <div class="flex items-center justify-between px-4 py-3 border-b border-white/10 last:border-0">
             <label for="{{ $key }}" class="text-sm font-medium text-white/80">{{ $label }}</label>
@@ -48,8 +50,8 @@
         @endforeach
     </div>
 
-    <div class="bg-white/10 backdrop-blur-sm rounded-xl overflow-hidden border border-white/15">
-        <div class="px-4 py-3 bg-white/5 border-b border-white/10">
+    <div class="rounded-xl overflow-hidden border border-white/20">
+        <div class="px-4 py-3 border-b border-white/10">
             <p class="text-xs font-semibold text-white/50 uppercase tracking-wide">Promociones activas</p>
         </div>
 
@@ -79,7 +81,7 @@
     </div>
 
     <button type="submit"
-            class="w-full bg-white/20 border border-white/30 text-white font-bold py-4 rounded-xl text-base">
+            class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl text-base">
         Guardar configuración
     </button>
 </form>

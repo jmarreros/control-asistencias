@@ -18,9 +18,9 @@
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Nombre del curso *</label>
         <input type="text" name="name" value="{{ old('name', $clase->name) }}" required
-               class="w-full border border-white/20 rounded-xl px-4 py-3 text-base text-white
-                      bg-white/10 backdrop-blur-sm
-                      focus:outline-none focus:ring-2 focus:ring-purple-400">
+               class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white
+                      bg-white/10
+                      focus:outline-none focus:border-purple-400 focus:bg-white/15">
     </div>
 
     {{-- Horario --}}
@@ -54,15 +54,15 @@
                     <input type="time" name="schedule[{{ $key }}][start]"
                            x-model="times['{{ $key }}'].start"
                            @change="propagate('{{ $key }}')"
-                           class="border border-white/20 rounded-lg px-3 py-1.5 text-sm
-                                  bg-white/10 backdrop-blur-sm text-white
-                                  focus:outline-none focus:ring-2 focus:ring-purple-400">
+                           class="border border-white/50 rounded-lg px-3 py-1.5 text-sm
+                                  bg-white/10 text-white
+                                  focus:outline-none focus:border-purple-400 focus:bg-white/15">
                     <span class="text-white/40 text-sm">–</span>
                     <input type="time" name="schedule[{{ $key }}][end]"
                            x-model="times['{{ $key }}'].end"
-                           class="border border-white/20 rounded-lg px-3 py-1.5 text-sm
-                                  bg-white/10 backdrop-blur-sm text-white
-                                  focus:outline-none focus:ring-2 focus:ring-purple-400">
+                           class="border border-white/50 rounded-lg px-3 py-1.5 text-sm
+                                  bg-white/10 text-white
+                                  focus:outline-none focus:border-purple-400 focus:bg-white/15">
                 </div>
             @endforeach
         </div>
@@ -71,9 +71,9 @@
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Descripción</label>
         <textarea name="description" rows="3"
-                  class="w-full border border-white/20 rounded-xl px-4 py-3 text-base text-white
-                         bg-white/10 backdrop-blur-sm
-                         focus:outline-none focus:ring-2 focus:ring-purple-400">{{ old('description', $clase->description) }}</textarea>
+                  class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white
+                         bg-white/10
+                         focus:outline-none focus:border-purple-400 focus:bg-white/15">{{ old('description', $clase->description) }}</textarea>
     </div>
 
     <div class="flex items-center gap-3 py-2">
@@ -92,7 +92,7 @@
 
     <div class="pt-2">
         <button type="submit"
-                class="w-full bg-purple-600 text-white font-bold py-4 rounded-xl text-lg">
+                class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl text-lg">
             Guardar cambios
         </button>
     </div>

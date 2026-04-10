@@ -13,7 +13,9 @@ class SettingController extends Controller
             'price_8h'   => Setting::get('price_8h',   120),
             'price_12h'  => Setting::get('price_12h',  150),
             'price_16h'  => Setting::get('price_16h',  170),
-            'price_full' => Setting::get('price_full', 190),
+            'price_24h'   => Setting::get('price_24h',   200),
+            'price_full1' => Setting::get('price_full1', 190),
+            'price_full2' => Setting::get('price_full2', 210),
         ];
 
         $promos = [
@@ -32,13 +34,17 @@ class SettingController extends Controller
             'price_8h'   => 'required|numeric|min:0',
             'price_12h'  => 'required|numeric|min:0',
             'price_16h'  => 'required|numeric|min:0',
-            'price_full' => 'required|numeric|min:0',
+            'price_24h'   => 'required|numeric|min:0',
+            'price_full1' => 'required|numeric|min:0',
+            'price_full2' => 'required|numeric|min:0',
         ]);
 
         Setting::set('price_8h',   $request->price_8h);
         Setting::set('price_12h',  $request->price_12h);
         Setting::set('price_16h',  $request->price_16h);
-        Setting::set('price_full', $request->price_full);
+        Setting::set('price_24h',   $request->price_24h);
+        Setting::set('price_full1', $request->price_full1);
+        Setting::set('price_full2', $request->price_full2);
 
         Setting::set('promo_10',  $request->boolean('promo_10')  ? 1 : 0);
         Setting::set('promo_20',  $request->boolean('promo_20')  ? 1 : 0);

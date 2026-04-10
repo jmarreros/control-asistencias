@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="es" class="dark" style="background:#0a0a14;">
+<html lang="es" style="background:#0a0a14;">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="color-scheme" content="dark">
     <meta name="theme-color" content="#0f0f1a">
     <title>{{ $title ?? 'Mi Asistencia' }} — Salsa Latin Motion</title>
     <link rel="preload" as="image" href="{{ asset('images/fondo.jpg') }}">

@@ -18,9 +18,9 @@
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Nombre completo *</label>
         <input type="text" name="name" value="{{ old('name', $student->name) }}" required
-               class="w-full border rounded-xl px-4 py-3 text-base text-white
-                      bg-white/10 backdrop-blur-sm border-white/20
-                      focus:outline-none focus:ring-2 focus:ring-indigo-400 @error('name') border-red-400 @enderror">
+               class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white
+                      bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15
+                      @error('name') border-red-400 @enderror">
         @error('name')
             <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
         @enderror
@@ -30,9 +30,9 @@
         <label class="block text-sm font-medium text-white/80 mb-1">DNI</label>
         <input type="text" name="dni" value="{{ old('dni', $student->dni) }}" maxlength="20" inputmode="numeric"
                placeholder="Ej. 12345678"
-               class="w-full border rounded-xl px-4 py-3 text-base text-white placeholder-white/40
-                      bg-white/10 backdrop-blur-sm border-white/20
-                      focus:outline-none focus:ring-2 focus:ring-indigo-400 @error('dni') border-red-400 @enderror">
+               class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white placeholder-white/40
+                      bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15
+                      @error('dni') border-red-400 @enderror">
         @error('dni')
             <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
         @enderror
@@ -41,17 +41,15 @@
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Teléfono / WhatsApp</label>
         <input type="tel" name="phone" value="{{ old('phone', $student->phone) }}"
-               class="w-full border border-white/20 rounded-xl px-4 py-3 text-base text-white
-                      bg-white/10 backdrop-blur-sm
-                      focus:outline-none focus:ring-2 focus:ring-indigo-400">
+               class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white
+                      bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15">
     </div>
 
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Notas</label>
         <textarea name="notes" rows="2"
-                  class="w-full border border-white/20 rounded-xl px-4 py-3 text-base text-white
-                         bg-white/10 backdrop-blur-sm
-                         focus:outline-none focus:ring-2 focus:ring-indigo-400">{{ old('notes', $student->notes) }}</textarea>
+                  class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white
+                         bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15">{{ old('notes', $student->notes) }}</textarea>
     </div>
 
     <div class="flex items-center gap-3">
@@ -84,7 +82,7 @@
         <div class="px-4 py-3 flex items-center justify-between">
             <div>
                 <p class="text-sm font-medium text-white">
-                    {{ $currentPlan->class_quota === 'full' ? 'Full (ilimitado)' : $currentPlan->class_quota . ' clases' }}
+                    {{ ['full1' => 'Full-1 (ilimitado)', 'full2' => 'Full-2 (ilimitado)'][$currentPlan->class_quota] ?? ($currentPlan->class_quota . ' clases') }}
                 </p>
                 <p class="text-xs text-white/50 mt-0.5">
                     {{ \Carbon\Carbon::parse($currentPlan->start_date)->locale('es')->isoFormat('D MMM YYYY') }}
@@ -117,7 +115,7 @@
 {{-- Botones --}}
 <div class="px-4 space-y-2 mb-6">
     <button type="submit" form="form-update"
-            class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl text-lg">
+            class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl text-lg">
         Guardar cambios
     </button>
 

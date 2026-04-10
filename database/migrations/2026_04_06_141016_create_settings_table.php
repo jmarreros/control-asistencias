@@ -21,7 +21,8 @@ return new class extends Migration
             ['key' => 'price_8h',   'value' => '120', 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'price_12h',  'value' => '150', 'created_at' => now(), 'updated_at' => now()],
             ['key' => 'price_16h',  'value' => '170', 'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'price_full', 'value' => '190', 'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'price_full1', 'value' => '190', 'created_at' => now(), 'updated_at' => now()],
+            ['key' => 'price_full2', 'value' => '210', 'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 

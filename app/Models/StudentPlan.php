@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentPlan extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = ['student_id', 'start_date', 'end_date', 'class_quota', 'price', 'promotion'];
 
@@ -48,7 +49,7 @@ class StudentPlan extends Model
 
     public function classesRemaining(): ?int
     {
-        if ($this->class_quota === 'full') return null;
+        if (in_array($this->class_quota, ['full1', 'full2'])) return null;
         return max(0, (int) $this->class_quota - $this->classesUsed());
     }
 
@@ -59,7 +60,7 @@ class StudentPlan extends Model
 
         if ($today < $this->start_date) return 'pending';
         if ($today > $this->end_date)   return 'expired';
-        if ($this->class_quota !== 'full' && $this->classesRemaining() <= 0) return 'exhausted';
+        if (!in_array($this->class_quota, ['full1', 'full2']) && $this->classesRemaining() <= 0) return 'exhausted';
 
         return 'ok';
     }

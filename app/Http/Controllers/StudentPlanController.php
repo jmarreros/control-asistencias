@@ -18,13 +18,22 @@ class StudentPlanController extends Controller
             : now();
 
         $defaultStartDate = $startDefault->toDateString();
-        $defaultEndDate   = $startDefault->copy()->addMonth()->toDateString();
+        $endDefault = $startDefault->copy();
+        $count = 0;
+        while (true) {
+            if (!in_array($endDefault->dayOfWeek, [0, 6])) $count++;
+            if ($count === 20) break;
+            $endDefault->addDay();
+        }
+        $defaultEndDate = $endDefault->toDateString();
 
         $prices = [
             '8'    => (float) Setting::get('price_8h',   120),
             '12'   => (float) Setting::get('price_12h',  150),
             '16'   => (float) Setting::get('price_16h',  170),
-            'full' => (float) Setting::get('price_full', 190),
+            '24'    => (float) Setting::get('price_24h',   200),
+            'full1' => (float) Setting::get('price_full1', 190),
+            'full2' => (float) Setting::get('price_full2', 210),
         ];
 
         $promos = collect([
@@ -42,7 +51,7 @@ class StudentPlanController extends Controller
         $request->validate([
             'start_date'  => 'required|date',
             'end_date'    => 'required|date|after_or_equal:start_date',
-            'class_quota' => 'required|in:8,12,16,full',
+            'class_quota' => 'required|in:8,12,16,24,full1,full2',
             'price'       => 'nullable|numeric|min:0',
             'promotion'   => 'nullable|in:promo_10,promo_20,promo_30,promo_2x1',
         ]);
