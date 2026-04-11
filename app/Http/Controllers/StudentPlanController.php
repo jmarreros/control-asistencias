@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Clase;
 use App\Models\Setting;
 use App\Models\Student;
 use Illuminate\Http\Request;
@@ -10,12 +11,26 @@ class StudentPlanController extends Controller
 {
     public function index(Student $student)
     {
-        $plans = $student->plans()->withTrashed()->get();
-        $currentPlan = $plans->whereNull('deleted_at')->first();
+        $plans = $student->plans()->withTrashed()->latest('start_date')->get();
+        $nonDeleted = $plans->whereNull('deleted_at')->values();
 
-        $startDefault = now()->isWeekend()
-            ? now()->nextWeekday()
-            : now();
+        // Plan corriendo actualmente (ok, exhausted, expired)
+        $currentPlan = $nonDeleted->first(fn($p) => in_array($p->status(), ['ok', 'exhausted', 'expired']));
+        // Plan futuro ya registrado (pending)
+        $nextPlan = $nonDeleted->first(fn($p) => $p->status() === 'pending');
+        // Si no hay ninguno en esos estados, mostrar el primero disponible
+        if (!$currentPlan && !$nextPlan) {
+            $currentPlan = $nonDeleted->first();
+        }
+
+        // Fecha de inicio sugerida: día siguiente al fin del plan más reciente activo
+        $latestEnd = $nonDeleted->max('end_date');
+        if ($latestEnd && $latestEnd >= now()->toDateString()) {
+            $startDefault = \Carbon\Carbon::parse($latestEnd)->addDay();
+            if ($startDefault->isWeekend()) $startDefault = $startDefault->nextWeekday();
+        } else {
+            $startDefault = now()->isWeekend() ? now()->nextWeekday() : now();
+        }
 
         $defaultStartDate = $startDefault->toDateString();
         $endDefault = $startDefault->copy();
@@ -43,7 +58,13 @@ class StudentPlanController extends Controller
             'promo_2x1' => ['label' => 'Promoción 2x1',  'discount' => 50],
         ])->filter(fn($_, $key) => (bool) Setting::get($key, 0));
 
-        return view('students.plans', compact('student', 'plans', 'currentPlan', 'defaultStartDate', 'defaultEndDate', 'prices', 'promos'));
+        $clases = Clase::where('active', true)->orderBy('name')->get();
+        $enrolledIds = $student->clases()->pluck('clases.id')->toArray();
+        if (empty($enrolledIds) && $nonDeleted->isEmpty()) {
+            $enrolledIds = $clases->pluck('id')->toArray();
+        }
+
+        return view('students.plans', compact('student', 'plans', 'currentPlan', 'nextPlan', 'defaultStartDate', 'defaultEndDate', 'prices', 'promos', 'clases', 'enrolledIds'));
     }
 
     public function store(Request $request, Student $student)
@@ -54,11 +75,16 @@ class StudentPlanController extends Controller
             'class_quota' => 'required|in:8,12,16,24,full1,full2',
             'price'       => 'nullable|numeric|min:0',
             'promotion'   => 'nullable|in:promo_10,promo_20,promo_30,promo_2x1',
+            'clases'      => 'nullable|array',
+            'clases.*'    => 'exists:clases,id',
         ]);
 
-        $currentPlan = $student->currentPlan;
-        if ($currentPlan && $currentPlan->status() === 'ok') {
-            return back()->with('error', 'No es posible agregar un nuevo plan mientras el alumno tiene un plan activo.');
+        $overlap = $student->plans()
+            ->where('start_date', '<=', $request->end_date)
+            ->where('end_date',   '>=', $request->start_date)
+            ->exists();
+        if ($overlap) {
+            return back()->with('error', 'Las fechas del nuevo plan se solapan con un plan ya registrado.');
         }
 
         $student->plans()->create([
@@ -68,6 +94,13 @@ class StudentPlanController extends Controller
             'price'       => $request->price ?: null,
             'promotion'   => $request->promotion ?: null,
         ]);
+
+        if ($request->has('clases')) {
+            $syncData = collect($request->clases)->mapWithKeys(fn($id) => [
+                $id => ['enrolled_at' => $request->start_date],
+            ])->toArray();
+            $student->clases()->sync($syncData);
+        }
 
         return redirect()->route('students.index')
             ->with('success', 'Plan registrado correctamente.');

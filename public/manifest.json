@@ -1,0 +1,25 @@
+{
+    "name": "Salsa Latin Motion",
+    "short_name": "Asistencias",
+    "description": "Control de asistencias — Academia de Baile",
+    "start_url": "/admin",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#0a0a14",
+    "theme_color": "#0f0f1a",
+    "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

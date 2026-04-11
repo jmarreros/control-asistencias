@@ -12,10 +12,21 @@
 <div class="p-4 space-y-3">
     @forelse($clases as $clase)
         @php $isToday = is_array($clase->schedule) && isset($clase->schedule[$todayKey]); @endphp
+        @php
+            $nombre = strtolower($clase->name);
+            $img = str_contains($nombre, 'salsa')    ? 'salsa.jpg'
+                 : (str_contains($nombre, 'bachata') ? 'bachata.jpg'
+                 : (str_contains($nombre, 'lady')    ? 'lady.jpg'
+                 : null));
+        @endphp
         <div class="bg-white/10 backdrop-blur-sm border rounded-xl overflow-hidden
                     {{ $isToday ? 'border-teal-400/40' : 'border-white/15' }}">
             <a href="{{ route('attendance.take', $clase) }}"
                class="flex items-center p-4 active:bg-white/10">
+                @if($img)
+                    <img src="{{ asset('images/' . $img) }}"
+                         class="w-10 h-10 rounded-full object-cover shrink-0 mr-3" alt="{{ $clase->name }}">
+                @endif
                 <div class="flex-1">
                     <p class="font-semibold text-white text-lg">{{ $clase->name }}</p>
                     @if($clase->schedule)

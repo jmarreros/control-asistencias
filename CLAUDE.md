@@ -152,11 +152,24 @@ Variable `APP_PIN` en `.env` (default `1234`).
 - Navegación inferior fija: Inicio · Alumnos · Asistencia · Cursos · Reportes (`z-40`)
 - Flash messages en `position:fixed; bottom:5rem` con `z-index:50`, auto-dismiss 3–4s via Alpine
 - Logo en cabeceras enlaza a `route('dashboard')`
+- Fondo fijo: `public/images/fondo.jpg` con overlay oscuro (`rgba(0,0,0,0.25)`), posicionado con `position:fixed; inset:0; z-index:1/2`
+- Contenido principal en `<main z-index:3>` con `max-w-lg mx-auto` (centrado en pantallas anchas)
+- PWA: registra service worker `/sw.js` y apunta a `/manifest.json`; incluye `apple-touch-icon`, meta `theme-color` y `apple-mobile-web-app-*`
 
 ### `layouts/student.blade.php` (portal alumno)
 - Sin navegación inferior — solo contenido y botón logout en header
 - Flash messages en `position:fixed; bottom:1.5rem`
 - Logo en cabeceras enlaza a `route('student.dashboard')`
+
+### Imágenes de cursos
+Archivos en `public/images/`: `salsa.jpg`, `bachata.jpg`, `lady.jpg`. Se asignan por nombre del curso:
+```php
+$img = str_contains(strtolower($clase->name), 'salsa')   ? 'salsa.jpg'
+     : (str_contains(strtolower($clase->name), 'bachata') ? 'bachata.jpg'
+     : (str_contains(strtolower($clase->name), 'lady')    ? 'lady.jpg'
+     : null));
+```
+Si no hay imagen, se muestra un avatar circular con la inicial. Este patrón está presente en dashboard, attendance/index, attendance/take, clases/index, clases/edit, clases/enroll, reports/index y reports/clase.
 
 ### Modales con Alpine.js
 Los modales con `position:fixed` deben usar **inline style** para el posicionamiento (no clases Tailwind) porque Tailwind JIT a veces no compila clases usadas solo en modales. Alpine gestiona el `display` del `x-show` via inline style — poner `display:flex` en clase CSS (`class="flex ..."`) no en el inline style, para que Alpine pueda ocultarlo/mostrarlo correctamente.
@@ -194,6 +207,7 @@ var student = this.students[this.students.length - 1]; // proxy reactivo
 - `Attendance::updateOrCreate([clase_id, student_id, date], [present])` para toggle individual
 - `Attendance::upsert($records, [clase_id, student_id, date], [present, updated_at])` para guardado masivo
 - `addStudent`: inscribe al alumno con `syncWithoutDetaching` y marca presente
+- `$extraStudents` en `take.blade.php` incluye `planStatus` de cada alumno no inscrito (para mostrar badges en el modal de añadir)
 
 ### Plan de alumno
 - `class_quota` acepta `'8' | '12' | '16' | '24' | 'full1' | 'full2'` (string, no int)
@@ -201,7 +215,30 @@ var student = this.students[this.students.length - 1]; // proxy reactivo
 - `classesRemaining()` retorna `null` para planes `full1`/`full2`, entero para los demás
 - `status()` retorna: `pending` (no iniciado), `ok` (activo), `exhausted` (cuota agotada), `expired` (vencido)
 - Al cancelar un plan se usa soft delete — queda en historial con badge "Cancelado"
-- El botón "Cancelar plan" solo aparece en planes con status `ok` o `pending`
+- El botón "Cancelar plan" aparece en planes con status `ok` o `pending`
+
+#### `StudentPlanController@index` — lógica de planes
+Distingue dos slots activos (ambos excluyendo soft-deleted):
+- `$currentPlan`: primer plan con status `ok`, `exhausted` o `expired`
+- `$nextPlan`: primer plan con status `pending`
+- Si ninguno aplica, `$currentPlan` toma el primer plan disponible
+- `$enrolledIds` default a todos los cursos activos cuando el alumno no tiene inscripciones ni planes previos
+
+#### `StudentPlanController@store` — sincronizar cursos
+Acepta campo `clases[]` (array de IDs). Al guardar el plan:
+```php
+$student->clases()->sync([$id => ['enrolled_at' => $request->start_date], ...]);
+```
+
+#### Fecha fin automática (`calcEndDate()` en Alpine)
+- Cuotas cortas (`8`, `12`, `full1`): 20 días hábiles desde `start_date`
+- Cuotas largas (`16`, `24`, `full2`): 40 días hábiles desde `start_date`
+- Cuenta días de lunes a viernes, ignorando sábados y domingos
+
+#### Selección de cursos al crear plan (`students/plans.blade.php`)
+Botones de filtro rápido:
+- **Marcar todos** / **Sólo salsa** / **Sólo bachata** / **Sólo lady** / **Todos menos lady**
+- Para planes `full1`/`full2`, al cambiar cuota se seleccionan todos los cursos automáticamente
 
 ### Portal del alumno
 - Muestra asistencias del último plan registrado (`currentPlan`)
@@ -252,7 +289,7 @@ app/
       SettingController.php          ← precios + promociones + notificaciones WA
       StudentAuthController.php      ← auth alumno por DNI
       StudentController.php
-      StudentPlanController.php      ← fechas default, promociones activas
+      StudentPlanController.php      ← fechas default, promociones activas, cursos del plan, nextPlan
       StudentPortalController.php    ← dashboard y detalle por curso del alumno
     Middleware/
       CheckPin.php                   ← alias check.pin
@@ -294,9 +331,19 @@ database/
   seeders/
     DatabaseSeeder.php               ← borra alumnos/planes/asistencias, conserva cursos; genera historial
 
+public/
+  manifest.json                      ← PWA manifest (nombre, iconos, theme_color, display:standalone)
+  sw.js                              ← Service Worker para PWA
+  icons/                             ← apple-touch-icon.png y variantes
+  images/
+    fondo.jpg                        ← fondo dinámico del layout admin
+    salsa.jpg · bachata.jpg · lady.jpg ← imágenes de cursos (asignadas por nombre)
+    logo-xs.jpg                      ← logo pequeño en cabeceras
+
 tests/Feature/
   ClaseControllerTest.php · EnrollmentControllerTest.php
-  StudentControllerTest.php · StudentPlanControllerTest.php
+  StudentControllerTest.php          ← cubre index (planStatus, isExpiring, waUrl), store, update, destroy
+  StudentPlanControllerTest.php      ← cubre store (quota, promoción, solapamiento), destroy (soft delete)
   AttendanceControllerTest.php
 tests/Unit/
   ClaseModelTest.php

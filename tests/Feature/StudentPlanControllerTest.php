@@ -125,6 +125,67 @@ class StudentPlanControllerTest extends TestCase
             ->assertSessionHasErrors('class_quota');
     }
 
+    public function test_store_accepts_quota_24(): void
+    {
+        $student = Student::factory()->create();
+
+        $this->actingAsAdmin()
+            ->post(route('students.plans.store', $student), [
+                'start_date'  => now()->toDateString(),
+                'end_date'    => now()->addMonths(2)->toDateString(),
+                'class_quota' => '24',
+                'price'       => 200,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('student_plans', ['student_id' => $student->id, 'class_quota' => '24']);
+    }
+
+    public function test_store_accepts_quota_full1(): void
+    {
+        $student = Student::factory()->create();
+
+        $this->actingAsAdmin()
+            ->post(route('students.plans.store', $student), [
+                'start_date'  => now()->toDateString(),
+                'end_date'    => now()->addMonths(1)->toDateString(),
+                'class_quota' => 'full1',
+                'price'       => 190,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('student_plans', ['student_id' => $student->id, 'class_quota' => 'full1']);
+    }
+
+    public function test_store_accepts_quota_full2(): void
+    {
+        $student = Student::factory()->create();
+
+        $this->actingAsAdmin()
+            ->post(route('students.plans.store', $student), [
+                'start_date'  => now()->toDateString(),
+                'end_date'    => now()->addMonths(2)->toDateString(),
+                'class_quota' => 'full2',
+                'price'       => 210,
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('student_plans', ['student_id' => $student->id, 'class_quota' => 'full2']);
+    }
+
+    public function test_store_rejects_old_quota_full(): void
+    {
+        $student = Student::factory()->create();
+
+        $this->actingAsAdmin()
+            ->post(route('students.plans.store', $student), [
+                'start_date'  => now()->toDateString(),
+                'end_date'    => now()->addMonths(1)->toDateString(),
+                'class_quota' => 'full',   // clave antigua, ya no válida
+            ])
+            ->assertSessionHasErrors('class_quota');
+    }
+
     public function test_store_blocks_new_plan_when_active_plan_exists(): void
     {
         $student = Student::factory()->create();

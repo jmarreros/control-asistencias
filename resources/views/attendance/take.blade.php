@@ -89,6 +89,13 @@
 
     {{-- Cabecera --}}
     <div class="bg-black/30 backdrop-blur-sm border-b border-white/10 px-4 pt-6 pb-4">
+        @php
+            $nombre = strtolower($clase->name);
+            $imgCurso = str_contains($nombre, 'salsa')    ? 'salsa.jpg'
+                      : (str_contains($nombre, 'bachata') ? 'bachata.jpg'
+                      : (str_contains($nombre, 'lady')    ? 'lady.jpg'
+                      : null));
+        @endphp
         <div class="flex items-center gap-3 mb-3">
             <a href="{{ route('attendance.index') }}" class="text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,13 +105,20 @@
             <a href="{{ route('dashboard') }}"><img src="{{ asset('images/logo-xs.jpg') }}" class="w-8 h-8 object-contain rounded-full shrink-0" alt="Logo"></a>
             <div class="flex-1">
                 <h1 class="text-xl font-bold text-white">{{ $clase->name }}</h1>
-                <p class="text-white/60 text-sm">
+                @if($clase->schedule)
+                    <p class="text-white/40 text-xs mt-0.5">{!! $clase->scheduleText() !!}</p>
+                @endif
+                <p class="text-white/60 text-sm mt-0.5">
                     {{ $date->locale('es')->isoFormat('dddd D [de] MMMM [de] YYYY') }}
                     @if($date->isToday())
                         <span class="ml-1 text-teal-300">(Hoy)</span>
                     @endif
                 </p>
             </div>
+            @if($imgCurso)
+                <img src="{{ asset('images/' . $imgCurso) }}"
+                     class="w-10 h-10 rounded-full object-cover shrink-0" alt="{{ $clase->name }}">
+            @endif
         </div>
 
         {{-- Selector de fecha --}}

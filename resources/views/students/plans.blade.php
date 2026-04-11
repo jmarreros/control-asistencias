@@ -18,7 +18,7 @@
 
     <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Plan actual</h2>
 
-    @if($currentPlan)
+    @if($currentPlan && $currentPlan->status() !== 'pending')
         @php $status = $currentPlan->status(); @endphp
         <div @class([
             'rounded-xl p-4 mb-4 border backdrop-blur-sm',
@@ -110,11 +110,68 @@
         <p class="text-sm text-white/40 mb-4">Sin plan registrado.</p>
     @endif
 
+    {{-- Próximo plan (pending) --}}
+    @if($nextPlan)
+        @php $ns = $nextPlan->status(); @endphp
+        <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3 mt-2">Próximo plan</h2>
+        <div class="rounded-xl p-4 mb-4 border backdrop-blur-sm bg-indigo-500/10 border-indigo-400/25">
+            <div class="mb-2">
+                <span class="text-xs font-semibold px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-300">
+                    Por iniciar
+                </span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                    <p class="text-white/50 text-xs">Inicio</p>
+                    <p class="font-medium text-white">
+                        {{ \Carbon\Carbon::parse($nextPlan->start_date)->locale('es')->isoFormat('D MMM YYYY') }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-white/50 text-xs">Fin</p>
+                    <p class="font-medium text-white">
+                        {{ \Carbon\Carbon::parse($nextPlan->end_date)->locale('es')->isoFormat('D MMM YYYY') }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-white/50 text-xs">Cuota</p>
+                    <p class="font-medium text-white">
+                        {{ ['full1' => 'Full-1 (ilimitado)', 'full2' => 'Full-2 (ilimitado)'][$nextPlan->class_quota] ?? ($nextPlan->class_quota . ' clases') }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-white/50 text-xs">Monto</p>
+                    <p class="font-medium text-white">
+                        {{ $nextPlan->price !== null ? 'S/ ' . number_format($nextPlan->price, 2) : '—' }}
+                    </p>
+                </div>
+            </div>
+            @if($nextPlan->promotion)
+                <div class="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
+                    <span class="text-xs text-white/50">Promoción:</span>
+                    <span class="text-xs font-semibold text-emerald-300">{{ $nextPlan->promotionLabel() }}</span>
+                </div>
+            @endif
+            <div class="mt-3 pt-3 border-t border-white/10 flex justify-end">
+                <form method="POST"
+                      action="{{ route('students.plans.destroy', [$student, $nextPlan]) }}"
+                      onsubmit="return confirm('¿Cancelar el próximo plan? Quedará registrado en el historial.')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="text-xs text-red-400/70 hover:text-red-400 transition-colors">
+                        Cancelar plan
+                    </button>
+                </form>
+            </div>
+        </div>
+    @endif
+
     {{-- Nuevo / Renovar plan --}}
-    <div x-data="{ open: {{ $currentPlan ? 'false' : 'true' }} }">
+    <div x-data="{ open: {{ (!$currentPlan && !$nextPlan) ? 'true' : 'false' }} }">
+        @if(!$nextPlan)
         <button type="button" @click="open = !open"
                 class="w-full flex items-center justify-between text-sm font-semibold text-indigo-400 py-2">
-            <span x-text="open ? 'Cancelar' : '+ {{ $currentPlan ? 'Renovar plan' : 'Agregar plan' }}'"></span>
+            <span x-text="open ? 'Cancelar' : '+ {{ !$currentPlan ? 'Agregar plan' : ($currentPlan->status() === 'ok' ? 'Pre-registrar próximo plan' : 'Renovar plan') }}'"></span>
             <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
             </svg>
@@ -134,6 +191,17 @@
                       'promo_20':  'border-violet-400 bg-violet-500/25 text-violet-300',
                       'promo_30':  'border-orange-400 bg-orange-500/25 text-orange-300',
                       'promo_2x1': 'border-pink-400 bg-pink-500/25 text-pink-300',
+                  },
+                  allClasesData: {{ json_encode($clases->map(fn($c) => ['id' => (string)$c->id, 'name' => strtolower($c->name)])) }},
+                  allClaseIds: {{ json_encode($clases->pluck('id')->map(fn($id) => (string)$id)) }},
+                  selectedClases: {{ json_encode(array_map('strval', old('clases', $enrolledIds))) }},
+                  quotaLabels: {
+                      '8':     '8 clases en 1 mes',
+                      '12':    '12 clases en 1 mes',
+                      'full1': 'Full-1 para 1 mes',
+                      '16':    '16 clases en 2 meses',
+                      '24':    '24 clases en 2 meses',
+                      'full2': 'Full-2 para 2 meses',
                   },
                   discount: 0,
                   promoKey: '',
@@ -159,6 +227,9 @@
                       this.price = this.discount > 0
                           ? Math.round(base * (1 - this.discount / 100) * 100) / 100
                           : base;
+                      if (['full1', 'full2'].includes(this.quota)) {
+                          this.filterClases('todos');
+                      }
                   },
                   selectDiscount(promo) {
                       if (this.discount === promo.discount) {
@@ -169,6 +240,15 @@
                           this.promoKey = promo.key;
                       }
                       this.updatePrice();
+                  },
+                  filterClases(keyword) {
+                      if (keyword === 'todos') {
+                          this.selectedClases = [...this.allClaseIds];
+                      } else if (keyword === 'menos-lady') {
+                          this.selectedClases = this.allClasesData.filter(c => !c.name.includes('lady')).map(c => c.id);
+                      } else {
+                          this.selectedClases = this.allClasesData.filter(c => c.name.includes(keyword)).map(c => c.id);
+                      }
                   }
               }"
               @submit.prevent="if (!dateError) $el.submit()">
@@ -176,12 +256,12 @@
 
             <div>
                 <label class="block text-xs font-medium text-white/70 mb-1">Cantidad de clases *</label>
-                <div class="flex gap-2 w-full">
+                <div class="flex gap-1.5 w-full">
                     @foreach(['8', '12', 'full1', '16', '24', 'full2'] as $quota)
                         <label class="cursor-pointer flex-1" @click="quota = '{{ $quota }}'; updatePrice(); calcEndDate()">
                             <input type="radio" name="class_quota" value="{{ $quota }}"
                                    x-model="quota" class="sr-only">
-                            <div class="text-center px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap"
+                            <div class="text-center px-1 py-1.5 rounded-lg border-2 text-xs font-semibold transition-colors cursor-pointer"
                                  :class="quota === '{{ $quota }}'
                                      ? 'border-indigo-400 bg-indigo-500/30 text-indigo-300'
                                      : 'border-white/20 bg-white/10 text-white/60'">
@@ -190,26 +270,67 @@
                         </label>
                     @endforeach
                 </div>
+                <p class="text-xs text-emerald-400 mt-1.5" x-text="quotaLabels[quota]"></p>
                 @error('class_quota')
                     <p class="text-red-400 text-xs mt-1">{{ $message }}</p>
                 @enderror
 
+                {{-- Cursos --}}
+                @if($clases->isNotEmpty())
+                <div class="mt-3">
+                    <label class="block text-xs font-medium text-white/70 mb-2">Cursos</label>
+                    <div class="flex flex-wrap gap-x-3 gap-y-1 mb-2">
+                        <button type="button" @click="filterClases('todos')"      class="text-xs text-indigo-400">Marcar todos</button>
+                        <button type="button" @click="filterClases('salsa')"      class="text-xs text-indigo-400">Sólo salsa</button>
+                        <button type="button" @click="filterClases('bachata')"    class="text-xs text-indigo-400">Sólo bachata</button>
+                        <button type="button" @click="filterClases('lady')"       class="text-xs text-indigo-400">Sólo lady</button>
+                        <button type="button" @click="filterClases('menos-lady')" class="text-xs text-indigo-400">Todos menos lady</button>
+                    </div>
+                    {{-- Hidden inputs para envío del formulario --}}
+                    <template x-for="id in selectedClases" :key="id">
+                        <input type="hidden" name="clases[]" :value="id">
+                    </template>
+
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($clases as $clase)
+                        <div @click="selectedClases.includes('{{ $clase->id }}')
+                                ? selectedClases = selectedClases.filter(id => id !== '{{ $clase->id }}')
+                                : selectedClases.push('{{ $clase->id }}')"
+                             class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border cursor-pointer transition-colors"
+                             :class="selectedClases.includes('{{ $clase->id }}')
+                                 ? 'bg-indigo-500/20 border-indigo-400/40'
+                                 : 'bg-white/5 border-white/10'">
+                            <div class="w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors"
+                                 :class="selectedClases.includes('{{ $clase->id }}') ? 'bg-indigo-500 border-indigo-400' : 'border-white/30'">
+                                <svg class="w-2 h-2 text-white transition-opacity"
+                                     :class="selectedClases.includes('{{ $clase->id }}') ? 'opacity-100' : 'opacity-0'"
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                </svg>
+                            </div>
+                            <p class="text-xs text-white">{{ $clase->name }}</p>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+
                 <div class="grid grid-cols-2 gap-3 mt-3">
-                    <div>
+                    <div class="min-w-0">
                         <label class="block text-xs font-medium text-white/70 mb-1">Fecha inicio *</label>
                         <input type="date" name="start_date" required
-                               x-model="startDate" @change="calcEndDate()"
+                               x-model.lazy="startDate" @change="calcEndDate()"
                                :class="dateError ? 'border-red-400' : 'border-white/50'"
-                               class="w-full rounded-xl px-3 py-2.5 text-sm border
+                               class="w-full min-w-0 rounded-xl px-2 py-2.5 text-xs border
                                       bg-white/10 text-white
                                       focus:outline-none focus:border-indigo-400 focus:bg-white/15">
                     </div>
-                    <div>
+                    <div class="min-w-0">
                         <label class="block text-xs font-medium text-white/70 mb-1">Fecha fin *</label>
                         <input type="date" name="end_date" required
-                               x-model="endDate"
+                               x-model.lazy="endDate"
                                :class="dateError ? 'border-red-400' : 'border-white/50'"
-                               class="w-full rounded-xl px-3 py-2.5 text-sm border
+                               class="w-full min-w-0 rounded-xl px-2 py-2.5 text-xs border
                                       bg-white/10 text-white
                                       focus:outline-none focus:border-indigo-400 focus:bg-white/15">
                     </div>
@@ -244,10 +365,12 @@
                     <label class="block text-xs font-medium text-white/70 mb-1">Monto (S/)</label>
                     <div class="relative">
                         <input type="number" name="price" step="0.01" min="0"
+                               style="-moz-appearance:textfield;"
                                x-model="price"
                                class="w-full rounded-xl px-3 py-2.5 text-sm border border-white/50
                                       bg-white/10 text-white
-                                      focus:outline-none focus:border-indigo-400 focus:bg-white/15">
+                                      focus:outline-none focus:border-indigo-400 focus:bg-white/15
+                                      [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none">
                         <template x-if="discount > 0">
                             <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                                 <span class="text-xs text-white/40 line-through"
@@ -271,11 +394,15 @@
                 Guardar plan
             </button>
         </form>
+        @endif {{-- !$nextPlan --}}
     </div>
 </div>
 
 {{-- Historial de planes --}}
-@php $historial = $plans->skip($currentPlan ? 1 : 0); @endphp
+@php
+    $activePlanIds = collect([$currentPlan, $nextPlan])->filter()->pluck('id');
+    $historial = $plans->whereNotIn('id', $activePlanIds->all())->values();
+@endphp
 @if($historial->count() > 0)
     <div class="border-t border-white/10 px-4 pt-4 pb-6">
         <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Historial</h2>

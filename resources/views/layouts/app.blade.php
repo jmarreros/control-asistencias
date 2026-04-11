@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="color-scheme" content="dark">
     <meta name="theme-color" content="#0f0f1a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Asistencias">
     <title>{{ $title ?? 'Asistencias' }} — Salsa Latin Motion</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
     <link rel="preload" as="image" href="{{ asset('images/fondo.jpg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -85,5 +91,10 @@
         </div>
     @endif
 
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
 </body>
 </html>

@@ -16,27 +16,42 @@
 
 <div class="divide-y divide-white/10">
     @forelse($clases as $clase)
-        <div class="flex items-center px-4 py-3 {{ !$clase->active ? 'opacity-50' : '' }}">
+        <div class="px-4 py-3 {{ !$clase->active ? 'opacity-50' : '' }}">
 
-            <div class="w-10 h-10 rounded-full bg-purple-500/30 border border-purple-400/30 flex items-center justify-center
-                        text-purple-300 font-bold text-sm mr-3 shrink-0">
-                {{ strtoupper(substr($clase->name, 0, 1)) }}
-            </div>
-
-            <div class="flex-1 min-w-0">
-                <p class="font-medium text-white truncate">{{ $clase->name }}</p>
-                @if($clase->schedule)
-                    <p class="text-white/60 mt-0.5">{!! $clase->scheduleText() !!}</p>
+            {{-- Fila superior: imagen + info --}}
+            @php
+                $nombre = strtolower($clase->name);
+                $img = str_contains($nombre, 'salsa')   ? 'salsa.jpg'
+                     : (str_contains($nombre, 'bachata') ? 'bachata.jpg'
+                     : (str_contains($nombre, 'lady')    ? 'lady.jpg'
+                     : null));
+            @endphp
+            <div class="flex items-center gap-3">
+                @if($img)
+                    <img src="{{ asset('images/' . $img) }}"
+                         class="w-10 h-10 rounded-full object-cover shrink-0" alt="{{ $clase->name }}">
+                @else
+                    <div class="w-10 h-10 rounded-full bg-purple-500/30 border border-purple-400/30 flex items-center justify-center
+                                text-purple-300 font-bold text-sm shrink-0">
+                        {{ strtoupper(substr($clase->name, 0, 1)) }}
+                    </div>
                 @endif
-                <div class="flex gap-1 mt-0.5">
-                    <span class="text-xs text-white/40">{{ $clase->students_count }} alumno{{ $clase->students_count != 1 ? 's' : '' }}</span>
-                    @if(!$clase->active)
-                        <span class="text-xs text-red-400">· Inactivo</span>
+                <div class="min-w-0">
+                    <p class="font-medium text-white truncate">{{ $clase->name }}</p>
+                    @if($clase->schedule)
+                        <p class="text-white/60 text-sm mt-0.5">{!! $clase->scheduleText() !!}</p>
                     @endif
+                    <div class="flex gap-1 mt-0.5">
+                        <span class="text-xs text-white/40">{{ $clase->students_count }} alumno{{ $clase->students_count != 1 ? 's' : '' }}</span>
+                        @if(!$clase->active)
+                            <span class="text-xs text-red-400">· Inactivo</span>
+                        @endif
+                    </div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0 ml-2">
+            {{-- Fila inferior: botones --}}
+            <div class="flex gap-2 mt-2 justify-end">
                 <a href="{{ route('clases.edit', $clase) }}"
                    class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/20 border border-purple-400/20 text-purple-300">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

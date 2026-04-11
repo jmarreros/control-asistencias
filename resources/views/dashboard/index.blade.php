@@ -5,8 +5,10 @@
     <div class="flex items-center justify-between mb-6 pt-2">
         <div class="flex items-center gap-2">
             <a href="{{ route('dashboard') }}"><img src="{{ asset('images/logo-xs.jpg') }}" class="w-9 h-9 object-contain rounded-full shrink-0" alt="Logo"></a>
-            <h1 class="text-xl font-bold text-white">Salsa Latin Motion</h1>
-            <p class="text-white/60 text-sm">{{ now()->locale('es')->isoFormat('dddd D [de] MMMM') }}</p>
+            <div>
+                <h1 class="text-xl font-bold text-white">Salsa Latin Motion</h1>
+                <p class="text-white/60 text-sm">{{ now()->locale('es')->isoFormat('dddd D [de] MMMM') }}</p>
+            </div>
         </div>
         <div class="flex items-center gap-1">
             <a href="{{ route('settings.edit') }}" class="text-white/50 p-2">
@@ -46,17 +48,30 @@
     <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Tomar asistencia</h2>
 
     @forelse($activeClases as $clase)
+        @php
+            $nombre = strtolower($clase->name);
+            $img = str_contains($nombre, 'salsa')    ? 'salsa.jpg'
+                 : (str_contains($nombre, 'bachata') ? 'bachata.jpg'
+                 : (str_contains($nombre, 'lady')    ? 'lady.jpg'
+                 : null));
+        @endphp
         <a href="{{ route('attendance.take', $clase) }}"
            class="block bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl p-4 mb-3 active:bg-white/20">
             <div class="flex items-center justify-between">
-                <div>
-                    <p class="font-semibold text-white">{{ $clase->name }}</p>
-                    @if($clase->schedule)
-                        <p class="text-sm text-white/60 mt-0.5">{!! $clase->scheduleText() !!}</p>
+                <div class="flex items-center gap-3">
+                    @if($img)
+                        <img src="{{ asset('images/' . $img) }}"
+                             class="w-10 h-10 rounded-full object-cover shrink-0" alt="{{ $clase->name }}">
                     @endif
-                    <p class="text-xs text-white/40 mt-1">{{ $clase->students_count }} alumno{{ $clase->students_count != 1 ? 's' : '' }}</p>
+                    <div>
+                        <p class="font-semibold text-white">{{ $clase->name }}</p>
+                        @if($clase->schedule)
+                            <p class="text-sm text-white/60 mt-0.5">{!! $clase->scheduleText() !!}</p>
+                        @endif
+                        <p class="text-xs text-white/40 mt-1">{{ $clase->students_count }} alumno{{ $clase->students_count != 1 ? 's' : '' }}</p>
+                    </div>
                 </div>
-                <svg class="w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-white/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
             </div>

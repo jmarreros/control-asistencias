@@ -178,6 +178,130 @@ class StudentControllerTest extends TestCase
     }
 
     // -------------------------------------------------------------------------
+    // index — planStatus, isExpiring y URLs WhatsApp
+    // -------------------------------------------------------------------------
+
+    public function test_index_sets_plan_status_ok_for_active_plan(): void
+    {
+        $student = Student::factory()->create();
+        \App\Models\StudentPlan::factory()->active()->create(['student_id' => $student->id]);
+
+        $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
+
+        $found = $response->viewData('students')->firstWhere('id', $student->id);
+        $this->assertEquals('ok', $found->planStatus);
+    }
+
+    public function test_index_sets_plan_status_expired_for_expired_plan(): void
+    {
+        $student = Student::factory()->create();
+        \App\Models\StudentPlan::factory()->expired()->create(['student_id' => $student->id]);
+
+        $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
+
+        $found = $response->viewData('students')->firstWhere('id', $student->id);
+        $this->assertEquals('expired', $found->planStatus);
+    }
+
+    public function test_index_sets_no_plan_status_when_student_has_no_plan(): void
+    {
+        $student = Student::factory()->create();
+
+        $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
+
+        $found = $response->viewData('students')->firstWhere('id', $student->id);
+        $this->assertEquals('no_plan', $found->planStatus);
+        $this->assertFalse($found->isExpiring);
+    }
+
+    public function test_index_flags_expiring_when_end_date_within_days_before(): void
+    {
+        // notify_days_before default = 3; plan vence en 2 días → debe marcar isExpiring
+        $student = Student::factory()->create(['phone' => '987000001']);
+        \App\Models\StudentPlan::factory()->create([
+            'student_id'  => $student->id,
+            'start_date'  => now()->subDays(10)->toDateString(),
+            'end_date'    => now()->addDays(2)->toDateString(),
+            'class_quota' => '16',  // cuota alta → no exhausted
+        ]);
+
+        $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
+
+        $found = $response->viewData('students')->firstWhere('id', $student->id);
+        $this->assertTrue($found->isExpiring);
+    }
+
+    public function test_index_does_not_flag_expiring_when_end_date_far(): void
+    {
+        $student = Student::factory()->create();
+        \App\Models\StudentPlan::factory()->active()->create(['student_id' => $student->id]);
+        // active() pone end_date en 25 días → muy lejos del umbral de 3
+
+        $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
+
+        $found = $response->viewData('students')->firstWhere('id', $student->id);
+        $this->assertFalse($found->isExpiring);
+    }
+
+    public function test_index_generates_whatsapp_url_for_expiring_student_with_phone(): void
+    {
+        $student = Student::factory()->create(['name' => 'Ana García', 'phone' => '987654321']);
+        \App\Models\StudentPlan::factory()->create([
+            'student_id'  => $student->id,
+            'start_date'  => now()->subDays(10)->toDateString(),
+            'end_date'    => now()->addDays(1)->toDateString(),
+            'class_quota' => '16',
+        ]);
+
+        $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
+
+        $found = $response->viewData('students')->firstWhere('id', $student->id);
+        $this->assertTrue($found->isExpiring);
+        $this->assertStringContainsString('wa.me/51987654321', $found->waUrl);
+        $this->assertStringContainsString('Ana', rawurldecode($found->waUrl));
+    }
+
+    public function test_index_no_whatsapp_url_when_expiring_student_has_no_phone(): void
+    {
+        $student = Student::factory()->create(['phone' => null]);
+        \App\Models\StudentPlan::factory()->create([
+            'student_id'  => $student->id,
+            'start_date'  => now()->subDays(10)->toDateString(),
+            'end_date'    => now()->addDays(1)->toDateString(),
+            'class_quota' => '16',
+        ]);
+
+        $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
+
+        $found = $response->viewData('students')->firstWhere('id', $student->id);
+        $this->assertTrue($found->isExpiring);
+        $this->assertNull($found->waUrl);
+    }
+
+    public function test_index_generates_expired_whatsapp_url_for_expired_student(): void
+    {
+        $student = Student::factory()->create(['phone' => '912345678']);
+        \App\Models\StudentPlan::factory()->expired()->create(['student_id' => $student->id]);
+
+        $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
+
+        $found = $response->viewData('students')->firstWhere('id', $student->id);
+        $this->assertNotNull($found->waUrlExpired);
+        $this->assertStringContainsString('wa.me/51912345678', $found->waUrlExpired);
+    }
+
+    public function test_index_no_expired_whatsapp_url_when_expired_student_has_no_phone(): void
+    {
+        $student = Student::factory()->create(['phone' => null]);
+        \App\Models\StudentPlan::factory()->expired()->create(['student_id' => $student->id]);
+
+        $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
+
+        $found = $response->viewData('students')->firstWhere('id', $student->id);
+        $this->assertNull($found->waUrlExpired);
+    }
+
+    // -------------------------------------------------------------------------
     // destroy (desactivar)
     // -------------------------------------------------------------------------
 

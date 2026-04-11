@@ -32,15 +32,26 @@
     <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Asistencias por curso</h2>
     <div class="space-y-2 mb-6">
         @forelse($clases as $clase)
+            @php
+                $nombre = strtolower($clase->name);
+                $imgCurso = str_contains($nombre, 'salsa')    ? 'salsa.jpg'
+                          : (str_contains($nombre, 'bachata') ? 'bachata.jpg'
+                          : (str_contains($nombre, 'lady')    ? 'lady.jpg'
+                          : null));
+            @endphp
             <a href="{{ route('reports.clase', $clase) }}"
-               class="flex items-center justify-between bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3.5 border border-white/15 active:bg-white/20">
-                <div>
+               class="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3.5 border border-white/15 active:bg-white/20">
+                @if($imgCurso)
+                    <img src="{{ asset('images/' . $imgCurso) }}"
+                         class="w-10 h-10 rounded-full object-cover shrink-0" alt="{{ $clase->name }}">
+                @endif
+                <div class="flex-1">
                     <p class="font-medium text-white">{{ $clase->name }}</p>
                     @if($clase->schedule)
                         <p class="text-xs text-white/50">{!! $clase->scheduleText() !!}</p>
                     @endif
                 </div>
-                <svg class="w-5 h-5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-white/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>
             </a>
