@@ -11,6 +11,8 @@
 .env
 .env.backup
 .env.production
+env.production.txt
+*.production.txt
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
@@ -23,3 +25,9 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*

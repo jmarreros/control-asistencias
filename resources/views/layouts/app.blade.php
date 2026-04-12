@@ -11,11 +11,16 @@
     <meta name="apple-mobile-web-app-title" content="Asistencias">
     <title>{{ $title ?? 'Asistencias' }} — Salsa Latin Motion</title>
     <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
     <link rel="preload" as="image" href="{{ asset('images/fondo.jpg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="text-white antialiased min-h-screen" style="background:#0a0a14;">
+
+    {{-- Barra de carga superior --}}
+    <div id="page-loader" style="position:fixed; top:0; left:0; right:0; z-index:9999; height:3px; display:none;">
+        <div id="page-loader-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#6366f1,#818cf8); transition:width 0.2s ease; border-radius:0 2px 2px 0;"></div>
+    </div>
 
     {{-- Fondo fijo --}}
     <div style="position:fixed; inset:0; z-index:1; background-image:url('{{ asset('images/fondo.jpg') }}'); background-size:cover; background-position:center;"></div>
@@ -95,6 +100,56 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js');
         }
+
+        // Barra de progreso en navegación
+        (function () {
+            var loader = document.getElementById('page-loader');
+            var bar    = document.getElementById('page-loader-bar');
+            var timer  = null;
+
+            function startLoader() {
+                if (timer) return;           // ya está corriendo
+                loader.style.display = 'block';
+                bar.style.width = '0%';
+                // avanza rápido al 70%, luego se detiene (esperando respuesta)
+                setTimeout(function () { bar.style.width = '40%'; }, 50);
+                setTimeout(function () { bar.style.width = '70%'; }, 400);
+                timer = setTimeout(function () { bar.style.width = '85%'; }, 1200);
+            }
+
+            function finishLoader() {
+                clearTimeout(timer);
+                timer = null;
+                bar.style.transition = 'width 0.15s ease';
+                bar.style.width = '100%';
+                setTimeout(function () {
+                    loader.style.display = 'none';
+                    bar.style.width = '0%';
+                    bar.style.transition = 'width 0.2s ease';
+                }, 200);
+            }
+
+            // Disparar al hacer clic en cualquier enlace interno
+            document.addEventListener('click', function (e) {
+                var el = e.target.closest('a');
+                if (!el) return;
+                var href = el.getAttribute('href');
+                if (!href || href.startsWith('#') || href.startsWith('javascript') ||
+                    href.startsWith('http') || href.startsWith('https') ||
+                    el.getAttribute('target') === '_blank') return;
+                startLoader();
+            });
+
+            // Disparar al enviar formularios
+            document.addEventListener('submit', function () {
+                startLoader();
+            });
+
+            // Terminar cuando la nueva página ya cargó
+            window.addEventListener('pageshow', function () {
+                finishLoader();
+            });
+        })();
     </script>
 </body>
 </html>

@@ -11,7 +11,7 @@
         <a href="{{ route('dashboard') }}"><img src="{{ asset('images/logo-xs.jpg') }}" class="w-8 h-8 object-contain rounded-full shrink-0" alt="Logo"></a>
         <div>
             <h1 class="text-xl font-bold text-white">Configuración</h1>
-            <p class="text-white/60 text-sm">Precios por defecto</p>
+            <p class="text-white/60 text-sm">Precios, promociones y notificaciones</p>
         </div>
     </div>
 </div>

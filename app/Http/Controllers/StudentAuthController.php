@@ -30,6 +30,7 @@ class StudentAuthController extends Controller
             return back()->withErrors(['dni' => 'Tu cuenta está desactivada. Consulta con la academia.'])->withInput();
         }
 
+        session()->forget('pin_authenticated');
         session(['student_id' => $student->id]);
 
         return redirect()->route('student.dashboard');

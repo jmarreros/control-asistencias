@@ -120,16 +120,15 @@
                          x-text="student.initial">
                     </div>
                     <div class="min-w-0 flex-1">
-                        <div class="flex items-center justify-between gap-2">
-                            <p class="font-medium text-white truncate" x-text="student.name"></p>
-                            <span x-show="!student.active"                   class="text-xs text-red-400 shrink-0">Inactivo</span>
-                            <span x-show="student.active && student.planStatus === 'ok'"       class="text-xs font-medium text-green-400 shrink-0">Plan activo</span>
-                            <span x-show="student.active && student.planStatus === 'pending'"  class="text-xs font-medium text-blue-400 shrink-0">Por iniciar</span>
-                            <span x-show="student.active && student.planStatus === 'exhausted'" class="text-xs font-medium text-orange-400 shrink-0">Plan inactivo</span>
-                            <span x-show="student.active && student.planStatus === 'expired'"  class="text-xs font-medium text-red-400 shrink-0">Plan inactivo</span>
-                            <span x-show="student.active && student.planStatus === 'no_plan'"  class="text-xs font-medium text-white/40 shrink-0">Sin plan</span>
-                        </div>
-                        <p class="text-sm text-white/50 truncate" x-text="student.phone"></p>
+                        <p class="font-medium text-white truncate" x-text="student.name"></p>
+                        <p class="text-xs mt-0.5">
+                            <span x-show="!student.active"                                     class="text-red-400">Inactivo</span>
+                            <span x-show="student.active && student.planStatus === 'ok'"       class="text-green-400">Plan activo</span>
+                            <span x-show="student.active && student.planStatus === 'pending'"  class="text-blue-400">Por iniciar</span>
+                            <span x-show="student.active && student.planStatus === 'exhausted'" class="text-orange-400">Clases agotadas</span>
+                            <span x-show="student.active && student.planStatus === 'expired'"  class="text-red-400">Plan vencido</span>
+                            <span x-show="student.active && student.planStatus === 'no_plan'"  class="text-white/40">Sin plan</span>
+                        </p>
                     </div>
                 </div>
                 <div class="flex gap-2 mt-2 justify-end">
@@ -184,7 +183,6 @@
                             <span x-show="student.planStatus === 'ok'"        class="text-xs font-medium text-green-400 shrink-0">Plan activo</span>
                             <span x-show="student.planStatus === 'exhausted'" class="text-xs font-medium text-orange-400 shrink-0">Plan inactivo</span>
                         </div>
-                        <p class="text-sm text-white/50 truncate" x-text="student.phone || 'Sin teléfono'"></p>
                         <div class="flex items-center gap-2 mt-1 flex-wrap">
                             <span class="flex items-center gap-1 text-xs text-amber-300/80">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,7 +243,6 @@
                             <span x-show="student.planStatus === 'expired'"   class="text-xs font-medium text-red-400 shrink-0">Vencido</span>
                             <span x-show="student.planStatus === 'exhausted'" class="text-xs font-medium text-orange-400 shrink-0">Agotado</span>
                         </div>
-                        <p class="text-sm text-white/50 truncate" x-text="student.phone || 'Sin teléfono'"></p>
                         <div class="flex items-center gap-2 mt-1 flex-wrap">
                             <span x-show="student.planStatus === 'expired'"
                                   class="flex items-center gap-1 text-xs text-red-400/80">
