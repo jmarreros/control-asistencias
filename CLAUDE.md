@@ -43,8 +43,12 @@ Clave primaria string. Registros actuales:
 | Precios | `price_8h`, `price_12h`, `price_16h`, `price_24h`, `price_full1`, `price_full2` |
 | Promociones | `promo_10`, `promo_20`, `promo_30`, `promo_2x1` |
 | Notificaciones WA | `notify_days_before`, `notify_classes_remaining`, `notify_message`, `notify_expired_message` |
+| Seguridad | `app_pin` (PIN admin; si no existe, cae a `env('APP_PIN', '1234')`) |
 
 Usar `Setting::get('key', default)` y `Setting::set('key', value)`.
+
+### Índice en `attendances`
+Índice compuesto `(student_id, present, date)` para acelerar `classesUsed()` en `StudentPlan`.
 
 ### Columna `promotion` en `student_plans`
 Almacena la clave de la promoción aplicada al crear el plan. Valores posibles: `null`, `'promo_10'`, `'promo_20'`, `'promo_30'`, `'promo_2x1'`.
@@ -82,6 +86,7 @@ Guardadas como string `YYYY-MM-DD` (sin cast a date en el modelo). Usar siempre 
 ### `Setting`
 - PK string (`key`), `$incrementing = false`
 - `Setting::get('key', default)` / `Setting::set('key', value)`
+- Cache en memoria (`static $cache[]`): cada clave se consulta una sola vez por request
 
 ---
 
@@ -132,8 +137,10 @@ GET       /reports/earnings/export       ReportController@earningsExport
 ## Autenticación
 
 ### Admin (PIN)
-Variable `APP_PIN` en `.env` (default `1234`).
+- PIN se lee de `Setting::get('app_pin')` primero; si no existe cae a `env('APP_PIN', '1234')`
+- Se puede cambiar desde `/settings` (sección colapsable al final de la página)
 - `PinController`: verifica PIN → `session(['pin_authenticated' => true])`
+- Al autenticar como admin se elimina la sesión de alumno (`session()->forget('student_id')`)
 - `CheckPin` middleware: comprueba `session('pin_authenticated')`
 - Alias `check.pin` en `bootstrap/app.php`
 
@@ -155,6 +162,8 @@ Variable `APP_PIN` en `.env` (default `1234`).
 - Fondo fijo: `public/images/fondo.jpg` con overlay oscuro (`rgba(0,0,0,0.25)`), posicionado con `position:fixed; inset:0; z-index:1/2`
 - Contenido principal en `<main z-index:3>` con `max-w-lg mx-auto` (centrado en pantallas anchas)
 - PWA: registra service worker `/sw.js` y apunta a `/manifest.json`; incluye `apple-touch-icon`, meta `theme-color` y `apple-mobile-web-app-*`
+- Barra de progreso superior (`#page-loader`, `z-index:9999`): aparece al hacer clic en enlaces internos o enviar formularios; se completa en `pageshow`
+- Favicons: `favicon.ico` (16/32/48px), `favicon-16x16.png`, `favicon-32x32.png` en `public/`
 
 ### `layouts/student.blade.php` (portal alumno)
 - Sin navegación inferior — solo contenido y botón logout en header
@@ -208,6 +217,7 @@ var student = this.students[this.students.length - 1]; // proxy reactivo
 - `Attendance::upsert($records, [clase_id, student_id, date], [present, updated_at])` para guardado masivo
 - `addStudent`: inscribe al alumno con `syncWithoutDetaching` y marca presente
 - `$extraStudents` en `take.blade.php` incluye `planStatus` de cada alumno no inscrito (para mostrar badges en el modal de añadir)
+- `$dateInSchedule`: booleano que indica si el día de la fecha seleccionada está en el horario del curso; si es `false` se muestra banner rojo y se bloquean todos los controles de asistencia
 
 ### Plan de alumno
 - `class_quota` acepta `'8' | '12' | '16' | '24' | 'full1' | 'full2'` (string, no int)
@@ -317,7 +327,7 @@ resources/views/
     create.blade.php · edit.blade.php · plans.blade.php
   clases/
     index.blade.php · create.blade.php · edit.blade.php · enroll.blade.php
-  settings/edit.blade.php            ← precios + promociones + notificaciones WhatsApp
+  settings/edit.blade.php            ← precios + promociones + notificaciones WhatsApp + cambio de PIN
   reports/
     index.blade.php · clase.blade.php · clase-student.blade.php
     student.blade.php · earnings.blade.php
@@ -333,12 +343,17 @@ database/
 
 public/
   manifest.json                      ← PWA manifest (nombre, iconos, theme_color, display:standalone)
-  sw.js                              ← Service Worker para PWA
+  sw.js                              ← Service Worker para PWA (cache slm-v2; precache fondo, logo-xs, icons)
+  favicon.ico                        ← favicon multi-tamaño (16/32/48px) generado desde logo.png
+  favicon-16x16.png · favicon-32x32.png ← favicons PNG para navegadores modernos
   icons/                             ← apple-touch-icon.png y variantes
   images/
     fondo.jpg                        ← fondo dinámico del layout admin
     salsa.jpg · bachata.jpg · lady.jpg ← imágenes de cursos (asignadas por nombre)
     logo-xs.jpg                      ← logo pequeño en cabeceras
+    logo.png                         ← logo principal (fuente para favicons)
+
+empaquetar.sh                        ← script para generar zip de deploy (excluye node_modules, ocultos, etc.)
 
 tests/Feature/
   ClaseControllerTest.php · EnrollmentControllerTest.php

@@ -34,6 +34,10 @@ class AttendanceController extends Controller
     {
         $date = $request->date ? \Carbon\Carbon::parse($request->date) : today();
 
+        $dayMap = [0 => 'dom', 1 => 'lun', 2 => 'mar', 3 => 'mie', 4 => 'jue', 5 => 'vie', 6 => 'sab'];
+        $dayKey = $dayMap[$date->dayOfWeek];
+        $dateInSchedule = is_array($clase->schedule) && isset($clase->schedule[$dayKey]);
+
         $students = $clase->students()->with('currentPlan')->orderBy('students.name')->get();
 
         $existing = Attendance::where('clase_id', $clase->id)
@@ -60,7 +64,7 @@ class AttendanceController extends Controller
 
         return view('attendance.take', compact(
             'clase', 'students', 'date', 'existing', 'defaultPresent',
-            'planStatuses', 'extraStudents', 'extraPlanStatuses'
+            'planStatuses', 'extraStudents', 'extraPlanStatuses', 'dateInSchedule'
         ));
     }
 

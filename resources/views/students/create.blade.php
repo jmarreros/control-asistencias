@@ -38,10 +38,15 @@
     </div>
 
     <div>
-        <label class="block text-sm font-medium text-white/80 mb-1">Teléfono / WhatsApp</label>
-        <input type="tel" name="phone" value="{{ old('phone') }}"
+        <label class="block text-sm font-medium text-white/80 mb-1">WhatsApp *</label>
+        <input type="tel" name="phone" value="{{ old('phone', '+51') }}" required
+               placeholder="+51 987 654 321"
                class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white placeholder-white/40
-                      bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15">
+                      bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15
+                      @error('phone') border-red-400 @enderror">
+        @error('phone')
+            <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+        @enderror
     </div>
 
     <div>

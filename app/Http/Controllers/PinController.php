@@ -19,7 +19,9 @@ class PinController extends Controller
     {
         $request->validate(['pin' => 'required']);
 
-        if ($request->pin === env('APP_PIN', '1234')) {
+        $currentPin = \App\Models\Setting::get('app_pin') ?? env('APP_PIN', '1234');
+
+        if ($request->pin === $currentPin) {
             session()->forget('student_id');
             session(['pin_authenticated' => true]);
             return redirect()->route('dashboard');

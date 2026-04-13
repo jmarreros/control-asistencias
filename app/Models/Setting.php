@@ -12,13 +12,20 @@ class Setting extends Model
 
     protected $fillable = ['key', 'value'];
 
+    private static array $cache = [];
+
     public static function get(string $key, mixed $default = null): mixed
     {
-        return static::where('key', $key)->value('value') ?? $default;
+        if (!array_key_exists($key, static::$cache)) {
+            static::$cache[$key] = static::where('key', $key)->value('value');
+        }
+
+        return static::$cache[$key] ?? $default;
     }
 
     public static function set(string $key, mixed $value): void
     {
         static::updateOrCreate(['key' => $key], ['value' => $value]);
+        static::$cache[$key] = $value;
     }
 }

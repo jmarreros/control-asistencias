@@ -72,7 +72,7 @@ class StudentController extends Controller
         $data = $request->validate([
             'name'  => 'required|string|max:100',
             'dni'   => 'nullable|string|max:20|unique:students,dni',
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'required|string|min:8|max:20',
             'notes' => 'nullable|string',
         ]);
 
@@ -94,7 +94,7 @@ class StudentController extends Controller
         $data = $request->validate([
             'name'   => 'required|string|max:100',
             'dni'    => 'nullable|string|max:20|unique:students,dni,' . $student->id,
-            'phone'  => 'nullable|string|max:20',
+            'phone'  => 'required|string|min:8|max:20',
             'notes'  => 'nullable|string',
             'active' => 'boolean',
         ]);

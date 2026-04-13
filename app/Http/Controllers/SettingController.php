@@ -37,7 +37,7 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
-        $request->validate([
+        $rules = [
             'price_8h'                 => 'required|numeric|min:0',
             'price_12h'                => 'required|numeric|min:0',
             'price_16h'                => 'required|numeric|min:0',
@@ -48,7 +48,22 @@ class SettingController extends Controller
             'notify_classes_remaining' => 'required|integer|min:0|max:10',
             'notify_message'           => 'required|string|max:255',
             'notify_expired_message'   => 'required|string|max:255',
-        ]);
+        ];
+
+        if ($request->filled('new_pin')) {
+            $rules['current_pin'] = 'required';
+            $rules['new_pin']     = 'required|digits_between:4,8|confirmed';
+        }
+
+        $request->validate($rules);
+
+        if ($request->filled('new_pin')) {
+            $currentPin = Setting::get('app_pin') ?? env('APP_PIN', '1234');
+            if ($request->current_pin !== $currentPin) {
+                return back()->withErrors(['current_pin' => 'El PIN actual no es correcto.'])->withInput();
+            }
+            Setting::set('app_pin', $request->new_pin);
+        }
 
         Setting::set('price_8h',   $request->price_8h);
         Setting::set('price_12h',  $request->price_12h);

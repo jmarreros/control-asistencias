@@ -142,6 +142,58 @@
         </div>
     </div>
 
+    {{-- Cambiar PIN admin --}}
+    <div class="rounded-xl overflow-hidden border border-white/20"
+         x-data="{ open: false }">
+        <button type="button" @click="open = !open"
+                class="w-full flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <p class="text-xs font-semibold text-white/50 uppercase tracking-wide">Cambiar PIN de administrador</p>
+            <svg class="w-4 h-4 text-white/40 transition-transform duration-200"
+                 :class="open ? 'rotate-180' : ''"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+
+        <div x-show="open" x-transition>
+            <div class="px-4 py-3 border-b border-white/10">
+                <label for="current_pin" class="text-sm font-medium text-white/80 block mb-1">PIN actual</label>
+                <input type="password" id="current_pin" name="current_pin"
+                       inputmode="numeric" maxlength="8" autocomplete="current-password"
+                       placeholder="••••"
+                       class="w-full border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/30
+                              bg-white/10 focus:outline-none focus:border-indigo-400
+                              @error('current_pin') border-red-400 @enderror">
+                @error('current_pin')
+                    <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="px-4 py-3 border-b border-white/10">
+                <label for="new_pin" class="text-sm font-medium text-white/80 block mb-1">PIN nuevo</label>
+                <input type="password" id="new_pin" name="new_pin"
+                       inputmode="numeric" maxlength="8" autocomplete="new-password"
+                       placeholder="••••"
+                       class="w-full border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/30
+                              bg-white/10 focus:outline-none focus:border-indigo-400
+                              @error('new_pin') border-red-400 @enderror">
+                @error('new_pin')
+                    <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div class="px-4 py-3">
+                <label for="new_pin_confirmation" class="text-sm font-medium text-white/80 block mb-1">Confirmar PIN nuevo</label>
+                <input type="password" id="new_pin_confirmation" name="new_pin_confirmation"
+                       inputmode="numeric" maxlength="8" autocomplete="new-password"
+                       placeholder="••••"
+                       class="w-full border border-white/20 rounded-xl px-4 py-3 text-base text-white placeholder-white/30
+                              bg-white/10 focus:outline-none focus:border-indigo-400">
+                <p class="text-xs text-white/30 mt-1.5">Entre 4 y 8 dígitos. Dejar vacío para no cambiar.</p>
+            </div>
+        </div>
+    </div>
+
     <button type="submit"
             class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl text-base">
         Guardar configuración

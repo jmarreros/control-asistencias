@@ -1,8 +1,10 @@
-const CACHE = 'slm-v1';
+const CACHE = 'slm-v2';
 const PRECACHE = [
     '/images/fondo.jpg',
+    '/images/logo-xs.jpg',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
+    '/icons/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', e => {

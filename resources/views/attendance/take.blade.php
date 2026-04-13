@@ -8,6 +8,7 @@
     modalOpen: false,
     modalSearch: '',
     date: '{{ $date->toDateString() }}',
+    dateInSchedule: {{ $dateInSchedule ? 'true' : 'false' }},
     toggleUrl: '{{ route('attendance.toggle', $clase) }}',
     addUrl: '{{ route('attendance.add-student', $clase) }}',
     csrfToken: '{{ csrf_token() }}',
@@ -135,7 +136,19 @@
                    class="flex-1 text-sm focus:outline-none w-full">
         </div>
 
-        @if(!$date->isToday())
+        @if(!$dateInSchedule)
+            <div class="bg-red-500/20 border border-red-500/40 text-red-300 text-sm font-medium px-3 py-2 rounded-lg mt-2 flex items-start gap-2">
+                <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"/>
+                </svg>
+                <span>
+                    Este curso no tiene clase el <strong>{{ $date->locale('es')->isoFormat('dddd') }}</strong>.
+                    <br>
+                    <a href="{{ route('clases.edit', $clase) }}" class="underline font-semibold">Editar horario del curso →</a>
+                </span>
+            </div>
+        @elseif(!$date->isToday())
             <div class="bg-yellow-400/20 border border-yellow-400/30 text-yellow-300 text-xs font-medium px-3 py-2 rounded-lg mt-2">
                 Estás viendo asistencia de una fecha pasada
             </div>
@@ -148,8 +161,10 @@
             <span class="font-bold text-green-400" x-text="presentCount"></span>
             / {{ $students->count() }} total
         </p>
-        <button type="button" @click="modalOpen = true"
-                class="flex items-center gap-1.5 text-xs text-teal-300 font-medium px-3 py-1.5 bg-teal-500/20 border border-teal-400/20 rounded-lg">
+        <button type="button" @click="dateInSchedule && (modalOpen = true)"
+                :disabled="!dateInSchedule"
+                :class="dateInSchedule ? 'text-teal-300 bg-teal-500/20 border-teal-400/20' : 'text-white/20 bg-white/5 border-white/10 cursor-not-allowed'"
+                class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 border rounded-lg">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
@@ -190,9 +205,9 @@
 
         <div class="divide-y divide-white/10">
             <template x-for="student in filteredStudents" :key="student.id">
-                <div :class="student.present ? 'bg-green-500/15' : 'bg-red-500/10'"
+                <div :class="dateInSchedule ? (student.present ? 'bg-green-500/15' : 'bg-red-500/10') : 'bg-white/5 opacity-60'"
                      class="flex items-center px-4 py-4 transition-colors select-none"
-                     @dblclick="toggle(student)">
+                     @dblclick="dateInSchedule && toggle(student)">
 
                     <div class="flex-1 min-w-0 mr-3">
                         <div class="flex items-center gap-2 flex-wrap">
@@ -229,10 +244,10 @@
                     </span>
 
                     <button type="button"
-                            @click="toggle(student)"
-                            :disabled="student.saving"
+                            @click="dateInSchedule && toggle(student)"
+                            :disabled="student.saving || !dateInSchedule"
                             :class="student.present ? 'bg-green-500' : 'bg-white/20'"
-                            class="relative w-14 h-8 rounded-full transition-colors duration-200 focus:outline-none shrink-0 disabled:opacity-60">
+                            class="relative w-14 h-8 rounded-full transition-colors duration-200 focus:outline-none shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
                         <span :class="student.present ? 'translate-x-7' : 'translate-x-1'"
                               class="absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform duration-200 block">
                         </span>
