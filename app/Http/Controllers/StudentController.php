@@ -13,6 +13,8 @@ class StudentController extends Controller
     {
         $students = Student::with('currentPlan')->orderBy('name')->get();
 
+        Setting::preload(['notify_days_before', 'notify_classes_remaining', 'notify_message', 'notify_expired_message']);
+
         $daysBefore          = (int) Setting::get('notify_days_before', 3);
         $classesThreshold    = (int) Setting::get('notify_classes_remaining', 1);
         $messageTemplate     = Setting::get('notify_message',         'Hola {nombre}, tu plan está por vencer. Te quedan {clases} clase(s) y vence el {fecha}. ¡Renueva ahora y sigue bailando con nosotros!');

@@ -11,7 +11,7 @@ class StudentPlan extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['student_id', 'start_date', 'end_date', 'class_quota', 'price', 'promotion'];
+    protected $fillable = ['student_id', 'start_date', 'end_date', 'class_quota', 'classes_remaining', 'price', 'promotion'];
 
     const PROMOTION_LABELS = [
         'promo_10'  => 'Descuento 10%',
@@ -38,19 +38,16 @@ class StudentPlan extends Model
         return $today >= $this->start_date && $today <= $this->end_date;
     }
 
-    public function classesUsed(): int
+    public function classesUsed(): ?int
     {
-        return Attendance::where('student_id', $this->student_id)
-            ->where('present', true)
-            ->where('date', '>=', $this->start_date)
-            ->where('date', '<=', $this->end_date)
-            ->count();
+        if (in_array($this->class_quota, ['full1', 'full2'])) return null;
+        return (int) $this->class_quota - ($this->classes_remaining ?? 0);
     }
 
     public function classesRemaining(): ?int
     {
         if (in_array($this->class_quota, ['full1', 'full2'])) return null;
-        return max(0, (int) $this->class_quota - $this->classesUsed());
+        return $this->classes_remaining ?? 0;
     }
 
     // 'ok' | 'exhausted' | 'expired' | 'pending' | 'no_plan'
@@ -60,7 +57,7 @@ class StudentPlan extends Model
 
         if ($today < $this->start_date) return 'pending';
         if ($today > $this->end_date)   return 'expired';
-        if (!in_array($this->class_quota, ['full1', 'full2']) && $this->classesRemaining() <= 0) return 'exhausted';
+        if (!in_array($this->class_quota, ['full1', 'full2']) && ($this->classes_remaining ?? 0) <= 0) return 'exhausted';
 
         return 'ok';
     }

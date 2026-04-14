@@ -24,8 +24,8 @@ php artisan migrate:fresh  # reiniciar BD completa
 | `students` | id, name, dni (unique nullable), phone, notes, active (bool) |
 | `clases` | id, name, schedule (JSON text), description, active (bool) |
 | `clase_student` | clase_id, student_id, enrolled_at (date nullable) — pivot |
-| `attendances` | id, clase_id, student_id, date, present (bool) — UNIQUE(clase_id, student_id, date) |
-| `student_plans` | id, student_id, start_date, end_date, class_quota, price, promotion (nullable), deleted_at (soft delete) |
+| `attendances` | id, clase_id, student_id, plan_id (FK nullable), date, present (bool) — UNIQUE(clase_id, student_id, date) |
+| `student_plans` | id, student_id, start_date, end_date, class_quota, classes_remaining (nullable), price, promotion (nullable), deleted_at (soft delete) |
 | `settings` | key (PK string), value |
 
 ### Columna `schedule` en `clases`
@@ -47,8 +47,16 @@ Clave primaria string. Registros actuales:
 
 Usar `Setting::get('key', default)` y `Setting::set('key', value)`.
 
+### Columna `plan_id` en `attendances`
+FK nullable a `student_plans`. Se asigna al guardar/toggle asistencia buscando el plan activo del alumno en esa fecha. Permite calcular `classesUsed()` sin range scan de fechas. `nullOnDelete` — si se cancela el plan el registro de asistencia se conserva con `plan_id = null`.
+
+### Columna `classes_remaining` en `student_plans`
+Entero nullable (null para `full1`/`full2`). Se mantiene incrementando/decrementando en cada cambio de asistencia desde `AttendanceController`. Evita consultar `attendances` para calcular clases restantes — `classesRemaining()` y `status()` leen directamente este campo.
+- Al crear un plan, se inicializa con el valor de `class_quota` (ej: `8` → `classes_remaining = 8`)
+- `adjustRemaining($planId, $delta)` aplica `MAX(0, classes_remaining + delta)` — nunca baja de 0
+
 ### Índice en `attendances`
-Índice compuesto `(student_id, present, date)` para acelerar `classesUsed()` en `StudentPlan`.
+Índice compuesto `(student_id, present, date)` — útil para consultas históricas sobre asistencias.
 
 ### Columna `promotion` en `student_plans`
 Almacena la clave de la promoción aplicada al crear el plan. Valores posibles: `null`, `'promo_10'`, `'promo_20'`, `'promo_30'`, `'promo_2x1'`.
@@ -75,17 +83,23 @@ Guardadas como string `YYYY-MM-DD` (sin cast a date en el modelo). Usar siempre 
 - Relaciones: `students()` BelongsToMany (ordenados por name), `attendances()` HasMany
 
 ### `StudentPlan`
-- `fillable`: student_id, start_date, end_date, class_quota, price, promotion
+- `fillable`: student_id, start_date, end_date, class_quota, classes_remaining, price, promotion
 - `casts`: price → decimal:2
 - Traits: `HasFactory`, `SoftDeletes`
 - `class_quota`: string — valores `'8' | '12' | '16' | '24' | 'full1' | 'full2'`
+- `classes_remaining`: entero nullable — null para `full1`/`full2`; mantenido por `AttendanceController`
 - `promotion`: string nullable — valores `'promo_10' | 'promo_20' | 'promo_30' | 'promo_2x1' | null`
 - `PROMOTION_LABELS`: constante array que mapea clave → etiqueta legible
-- Métodos: `status()` → `'ok' | 'exhausted' | 'expired' | 'pending'`, `classesUsed()`, `classesRemaining()` (null si full), `canAttend()`, `promotionLabel(): ?string`
+- Métodos: `status()` → `'ok' | 'exhausted' | 'expired' | 'pending'`, `classesUsed()` (deriva de quota - remaining, sin query), `classesRemaining()` (lee `$this->classes_remaining`, sin query), `canAttend()`, `promotionLabel(): ?string`
+
+### `Attendance`
+- `fillable`: clase_id, student_id, plan_id, date, present, notes
+- Relaciones: `clase()`, `student()`, `plan()` BelongsTo StudentPlan
 
 ### `Setting`
 - PK string (`key`), `$incrementing = false`
 - `Setting::get('key', default)` / `Setting::set('key', value)`
+- `Setting::preload(array $keys)` — carga varias claves en una sola query `WHERE key IN (...)` y las mete al caché; usar antes de llamar `get()` múltiples veces en un mismo request
 - Cache en memoria (`static $cache[]`): cada clave se consulta una sola vez por request
 
 ---
@@ -162,7 +176,8 @@ GET       /reports/earnings/export       ReportController@earningsExport
 - Fondo fijo: `public/images/fondo.jpg` con overlay oscuro (`rgba(0,0,0,0.25)`), posicionado con `position:fixed; inset:0; z-index:1/2`
 - Contenido principal en `<main z-index:3>` con `max-w-lg mx-auto` (centrado en pantallas anchas)
 - PWA: registra service worker `/sw.js` y apunta a `/manifest.json`; incluye `apple-touch-icon`, meta `theme-color` y `apple-mobile-web-app-*`
-- Barra de progreso superior (`#page-loader`, `z-index:9999`): aparece al hacer clic en enlaces internos o enviar formularios; se completa en `pageshow`
+- Barra de progreso superior: CSS puro con `@keyframes slm-load` (`transform:scaleX`), `z-index:99999`, corre automáticamente en cada carga de página sin JS
+- Splash screen (`#slm-splash`, `z-index:99998`): logo + nombre + tres puntos animados; visible solo en apertura en frío (sessionStorage `slm_s` vacío); mínimo 900ms, fade out 450ms; en navegación interna se oculta de inmediato
 - Favicons: `favicon.ico` (16/32/48px), `favicon-16x16.png`, `favicon-32x32.png` en `public/`
 
 ### `layouts/student.blade.php` (portal alumno)
@@ -213,17 +228,20 @@ var student = this.students[this.students.length - 1]; // proxy reactivo
 
 ### Asistencia
 - `$defaultPresent = false` — por defecto todos ausentes (tanto hoy como fechas pasadas)
-- `Attendance::updateOrCreate([clase_id, student_id, date], [present])` para toggle individual
-- `Attendance::upsert($records, [clase_id, student_id, date], [present, updated_at])` para guardado masivo
+- `Attendance::updateOrCreate([clase_id, student_id, date], [present, plan_id])` para toggle individual
+- `Attendance::upsert($records, [clase_id, student_id, date], [present, plan_id, updated_at])` para guardado masivo
 - `addStudent`: inscribe al alumno con `syncWithoutDetaching` y marca presente
+- Al guardar/toggle: `resolvePlanId(studentId, date)` busca el plan activo en esa fecha; `adjustRemaining(planId, delta)` actualiza `classes_remaining` solo si cambió el estado de presencia
+- En `save()` masivo: los planes se cargan en una sola query (`whereIn student_id`) antes del upsert; los deltas se acumulan por `plan_id` y se aplican en batch
 - `$extraStudents` en `take.blade.php` incluye `planStatus` de cada alumno no inscrito (para mostrar badges en el modal de añadir)
 - `$dateInSchedule`: booleano que indica si el día de la fecha seleccionada está en el horario del curso; si es `false` se muestra banner rojo y se bloquean todos los controles de asistencia
 
 ### Plan de alumno
 - `class_quota` acepta `'8' | '12' | '16' | '24' | 'full1' | 'full2'` (string, no int)
-- `classesUsed()` cuenta asistencias `present=true` dentro del rango de fechas del plan
-- `classesRemaining()` retorna `null` para planes `full1`/`full2`, entero para los demás
-- `status()` retorna: `pending` (no iniciado), `ok` (activo), `exhausted` (cuota agotada), `expired` (vencido)
+- `classes_remaining`: contador persistido en BD, mantenido por `AttendanceController` — no requiere consultar `attendances`
+- `classesUsed()` = `class_quota - classes_remaining` (sin query a BD)
+- `classesRemaining()` retorna `$this->classes_remaining` directamente (null para `full1`/`full2`)
+- `status()` retorna: `pending` (no iniciado), `ok` (activo), `exhausted` (cuota agotada), `expired` (vencido) — sin query a BD
 - Al cancelar un plan se usa soft delete — queda en historial con badge "Cancelado"
 - El botón "Cancelar plan" aparece en planes con status `ok` o `pending`
 
@@ -278,7 +296,7 @@ Seis claves: `price_8h` (120), `price_12h` (150), `price_16h` (170), `price_24h`
 - `notify_classes_remaining` (default 1): umbral de clases restantes para alertar
 - `notify_message`: plantilla del mensaje; variables `{nombre}`, `{clases}`, `{fecha}`
 - `notify_expired_message`: plantilla para plan vencido; variables `{nombre}`, `{fecha}`
-- `StudentController@index` calcula `isExpiring`, `waUrl` y `waUrlExpired` para cada alumno y los expone al componente Alpine de la vista
+- `StudentController@index` usa `Setting::preload([...])` para cargar los 4 settings en una sola query, luego calcula `isExpiring`, `waUrl` y `waUrlExpired` para cada alumno
 - Teléfono normalizado: se quitan no-dígitos; si quedan 9 dígitos se antepone `51` (Perú)
 - URL generada: `https://wa.me/{phone}?text={encoded_message}`
 

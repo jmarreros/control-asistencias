@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\Clase;
+use App\Models\StudentPlan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
@@ -68,6 +70,28 @@ class AttendanceController extends Controller
         ));
     }
 
+    /** Suma `$delta` a classes_remaining (negativo = descuenta). Nunca baja de 0. */
+    private function adjustRemaining(int $planId, int $delta): void
+    {
+        if ($delta === 0) return;
+
+        StudentPlan::where('id', $planId)
+            ->whereNotNull('classes_remaining')
+            ->update([
+                'classes_remaining' => DB::raw('MAX(0, classes_remaining + ' . $delta . ')'),
+            ]);
+    }
+
+    private function resolvePlanId(int $studentId, string $date): ?int
+    {
+        return StudentPlan::where('student_id', $studentId)
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->whereNull('deleted_at')
+            ->orderByDesc('start_date')
+            ->value('id');
+    }
+
     public function addStudent(Request $request, Clase $clase)
     {
         $request->validate([
@@ -81,14 +105,24 @@ class AttendanceController extends Controller
         ]);
 
         // Guardar asistencia como presente
+        $date   = \Carbon\Carbon::parse($request->date)->toDateString();
+        $planId = $this->resolvePlanId($request->student_id, $date);
+
+        $existing   = Attendance::where('clase_id', $clase->id)
+            ->where('student_id', $request->student_id)
+            ->where('date', $date)
+            ->first();
+
+        $wasPresent = $existing?->present ?? false;
+
         Attendance::updateOrCreate(
-            [
-                'clase_id'   => $clase->id,
-                'student_id' => $request->student_id,
-                'date'       => \Carbon\Carbon::parse($request->date)->toDateString(),
-            ],
-            ['present' => true]
+            ['clase_id' => $clase->id, 'student_id' => $request->student_id, 'date' => $date],
+            ['present'  => true, 'plan_id' => $planId]
         );
+
+        if ($planId && !$wasPresent) {
+            $this->adjustRemaining($planId, -1);
+        }
 
         return response()->json(['ok' => true]);
     }
@@ -101,14 +135,26 @@ class AttendanceController extends Controller
             'present'    => 'required|boolean',
         ]);
 
+        $date    = \Carbon\Carbon::parse($request->date)->toDateString();
+        $planId  = $this->resolvePlanId($request->student_id, $date);
+
+        $existing    = Attendance::where('clase_id', $clase->id)
+            ->where('student_id', $request->student_id)
+            ->where('date', $date)
+            ->first();
+
+        $wasPresent = $existing?->present ?? false;
+        $isPresent  = (bool) $request->present;
+
         Attendance::updateOrCreate(
-            [
-                'clase_id'   => $clase->id,
-                'student_id' => $request->student_id,
-                'date'       => \Carbon\Carbon::parse($request->date)->toDateString(),
-            ],
-            ['present' => $request->present]
+            ['clase_id' => $clase->id, 'student_id' => $request->student_id, 'date' => $date],
+            ['present'  => $isPresent, 'plan_id' => $planId]
         );
+
+        // Ajustar clases restantes solo si cambió el estado
+        if ($planId && $wasPresent !== $isPresent) {
+            $this->adjustRemaining($planId, $isPresent ? -1 : +1);
+        }
 
         return response()->json(['ok' => true]);
     }
@@ -119,23 +165,53 @@ class AttendanceController extends Controller
             'date' => 'required|date',
         ]);
 
-        $students = $clase->students()->pluck('students.id');
+        $students   = $clase->students()->pluck('students.id');
         $presentMap = $request->input('present', []);
+        $date       = $request->date;
+
+        // Cargar asistencias previas para detectar cambios
+        $existing = Attendance::where('clase_id', $clase->id)
+            ->where('date', $date)
+            ->whereIn('student_id', $students)
+            ->pluck('present', 'student_id');
+
+        // Cargar planes activos en esa fecha en una sola query
+        $plansByStudent = StudentPlan::whereIn('student_id', $students)
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->whereNull('deleted_at')
+            ->orderByDesc('start_date')
+            ->pluck('id', 'student_id');
 
         $records = $students->map(fn($studentId) => [
             'clase_id'   => $clase->id,
             'student_id' => $studentId,
-            'date'       => $request->date,
+            'plan_id'    => $plansByStudent[$studentId] ?? null,
+            'date'       => $date,
             'present'    => isset($presentMap[$studentId]) && $presentMap[$studentId] === '1',
             'created_at' => now(),
             'updated_at' => now(),
         ])->values()->all();
 
-        Attendance::upsert(
-            $records,
-            ['clase_id', 'student_id', 'date'],
-            ['present', 'updated_at']
-        );
+        Attendance::upsert($records, ['clase_id', 'student_id', 'date'], ['present', 'plan_id', 'updated_at']);
+
+        // Calcular deltas por plan y aplicar en batch
+        $planDeltas = [];
+        foreach ($students as $studentId) {
+            $wasPresent = (bool) ($existing[$studentId] ?? false);
+            $isPresent  = isset($presentMap[$studentId]) && $presentMap[$studentId] === '1';
+
+            if ($wasPresent === $isPresent) continue;
+
+            $planId = $plansByStudent[$studentId] ?? null;
+            if (!$planId) continue;
+
+            $planDeltas[$planId] = ($planDeltas[$planId] ?? 0) + ($isPresent ? -1 : +1);
+        }
+
+        foreach ($planDeltas as $planId => $delta) {
+            $this->adjustRemaining($planId, $delta);
+        }
 
         return redirect()->route('attendance.index')
             ->with('success', 'Asistencia guardada correctamente.');

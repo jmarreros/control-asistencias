@@ -253,6 +253,7 @@ class DatabaseSeeder extends Seeder
             Attendance::create([
                 'clase_id'   => $s['clase_id'],
                 'student_id' => $student->id,
+                'plan_id'    => $plan->id,
                 'date'       => $s['date'],
                 'present'    => $presentSet->has($s['clase_id'] . '_' . $s['date']),
             ]);

@@ -20,10 +20,56 @@
 </head>
 <body class="text-white antialiased min-h-screen" style="background:#0a0a14;">
 
-    {{-- Barra de carga superior --}}
-    <div id="page-loader" style="position:fixed; top:0; left:0; right:0; z-index:9999; height:3px; display:none;">
-        <div id="page-loader-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#6366f1,#818cf8); transition:width 0.2s ease; border-radius:0 2px 2px 0;"></div>
+    <style>
+        @keyframes slm-load {
+            0%   { transform: scaleX(0);    opacity: 1; }
+            60%  { transform: scaleX(0.85); opacity: 1; }
+            90%  { transform: scaleX(0.97); opacity: 1; }
+            100% { transform: scaleX(1);    opacity: 0; }
+        }
+        @keyframes slm-dot {
+            0%, 100% { transform: scale(0.7); opacity: 0.3; }
+            50%       { transform: scale(1.3); opacity: 1;   }
+        }
+    </style>
+
+    {{-- Barra de progreso: CSS pura, corre en cada carga de página --}}
+    <div style="position:fixed; top:0; left:0; right:0; z-index:99999; height:4px; pointer-events:none; overflow:hidden;">
+        <div style="height:100%; width:100%; transform-origin:left center; background:linear-gradient(90deg,#6366f1,#a78bfa,#818cf8); box-shadow:0 0 10px rgba(139,92,246,0.9); border-radius:0 3px 3px 0; animation:slm-load 0.8s cubic-bezier(0.4,0,0.2,1) forwards;"></div>
     </div>
+
+    {{-- Splash: solo en apertura en frío (sessionStorage vacío = nueva sesión PWA) --}}
+    <div id="slm-splash" style="position:fixed; inset:0; z-index:99998; background:#0a0a14; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;">
+        <img src="/images/logo-xs.jpg" alt="" style="width:96px; height:96px; border-radius:50%; object-fit:cover; box-shadow:0 0 40px rgba(99,102,241,0.5); margin-bottom:20px;">
+        <p style="color:#fff; font-size:21px; font-weight:700; letter-spacing:0.02em; margin:0;">Salsa Latin Motion</p>
+        <p style="color:rgba(255,255,255,0.35); font-size:12px; letter-spacing:0.12em; margin:6px 0 36px; text-transform:uppercase;">Control de Asistencias</p>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <div style="width:7px; height:7px; border-radius:50%; background:#6366f1; animation:slm-dot 1.2s ease-in-out 0s infinite;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#818cf8; animation:slm-dot 1.2s ease-in-out 0.2s infinite;"></div>
+            <div style="width:7px; height:7px; border-radius:50%; background:#a78bfa; animation:slm-dot 1.2s ease-in-out 0.4s infinite;"></div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var splash = document.getElementById('slm-splash');
+            if (sessionStorage.getItem('slm_s')) {
+                // Navegación interna: ocultar splash de inmediato
+                splash.style.display = 'none';
+            } else {
+                // Primera carga / apertura en frío: mostrar splash mínimo 900ms
+                sessionStorage.setItem('slm_s', '1');
+                var t0 = Date.now();
+                window.addEventListener('DOMContentLoaded', function () {
+                    var wait = Math.max(0, 900 - (Date.now() - t0));
+                    setTimeout(function () {
+                        splash.style.transition = 'opacity 0.45s ease';
+                        splash.style.opacity = '0';
+                        setTimeout(function () { splash.style.display = 'none'; }, 450);
+                    }, wait);
+                });
+            }
+        })();
+    </script>
 
     {{-- Fondo fijo --}}
     <div style="position:fixed; inset:0; z-index:1; background-image:url('{{ asset('images/fondo.jpg') }}'); background-size:cover; background-position:center;"></div>
@@ -104,55 +150,6 @@
             navigator.serviceWorker.register('/sw.js');
         }
 
-        // Barra de progreso en navegación
-        (function () {
-            var loader = document.getElementById('page-loader');
-            var bar    = document.getElementById('page-loader-bar');
-            var timer  = null;
-
-            function startLoader() {
-                if (timer) return;           // ya está corriendo
-                loader.style.display = 'block';
-                bar.style.width = '0%';
-                // avanza rápido al 70%, luego se detiene (esperando respuesta)
-                setTimeout(function () { bar.style.width = '40%'; }, 50);
-                setTimeout(function () { bar.style.width = '70%'; }, 400);
-                timer = setTimeout(function () { bar.style.width = '85%'; }, 1200);
-            }
-
-            function finishLoader() {
-                clearTimeout(timer);
-                timer = null;
-                bar.style.transition = 'width 0.15s ease';
-                bar.style.width = '100%';
-                setTimeout(function () {
-                    loader.style.display = 'none';
-                    bar.style.width = '0%';
-                    bar.style.transition = 'width 0.2s ease';
-                }, 200);
-            }
-
-            // Disparar al hacer clic en cualquier enlace interno
-            document.addEventListener('click', function (e) {
-                var el = e.target.closest('a');
-                if (!el) return;
-                var href = el.getAttribute('href');
-                if (!href || href.startsWith('#') || href.startsWith('javascript') ||
-                    href.startsWith('http') || href.startsWith('https') ||
-                    el.getAttribute('target') === '_blank') return;
-                startLoader();
-            });
-
-            // Disparar al enviar formularios
-            document.addEventListener('submit', function () {
-                startLoader();
-            });
-
-            // Terminar cuando la nueva página ya cargó
-            window.addEventListener('pageshow', function () {
-                finishLoader();
-            });
-        })();
     </script>
 </body>
 </html>

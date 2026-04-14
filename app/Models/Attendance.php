@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Attendance extends Model
 {
-    protected $fillable = ['clase_id', 'student_id', 'date', 'present', 'notes'];
+    protected $fillable = ['clase_id', 'student_id', 'plan_id', 'date', 'present', 'notes'];
 
     protected $casts = [
         'present' => 'boolean',
@@ -21,5 +21,10 @@ class Attendance extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(StudentPlan::class, 'plan_id');
     }
 }
