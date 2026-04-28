@@ -7,6 +7,7 @@
     students: {{ $students->map(fn($s) => [
         'id'              => $s->id,
         'name'            => $s->name,
+        'dni'             => $s->dni ?? '',
         'phone'           => $s->phone ?? '',
         'active'          => $s->active,
         'url'             => route('students.edit', $s),
@@ -37,7 +38,8 @@
         const q = this.search.toLowerCase();
         return list.filter(s =>
             s.name.toLowerCase().includes(q) ||
-            s.phone.toLowerCase().includes(q)
+            s.phone.toLowerCase().includes(q) ||
+            s.dni.includes(q)
         );
     }
 }">
@@ -72,7 +74,7 @@
                       x-text="activeCount"></span>
             </button>
             <button @click="tab = 'por-vencer'; search = ''"
-                    :class="tab === 'por-vencer' ? 'bg-amber-500 text-white shadow-sm' : 'text-white/50'"
+                    :class="tab === 'por-vencer' ? 'bg-orange-500 text-white shadow-sm' : 'text-white/50'"
                     class="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-[10px] transition-all duration-200">
                 <span>Por vencer</span>
                 <span x-show="expiringCount > 0"
@@ -99,7 +101,7 @@
             </svg>
             <input type="search"
                    x-model="search"
-                   placeholder="Buscar alumno..."
+                   placeholder="Buscar alumno por nombre o DNI"
                    autocomplete="off"
                    class="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm bg-white/15 border border-white/20 text-white placeholder-white/40
                           focus:outline-none focus:ring-2 focus:ring-white/30">
@@ -173,8 +175,8 @@
         <template x-for="student in filtered" :key="student.id">
             <div class="px-4 py-3.5 border-b border-white/10">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-400/30 flex items-center justify-center
-                                text-amber-300 font-bold text-sm shrink-0"
+                    <div class="w-10 h-10 rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center
+                                text-orange-400 font-bold text-sm shrink-0"
                          x-text="student.initial">
                     </div>
                     <div class="min-w-0 flex-1">
@@ -184,7 +186,7 @@
                             <span x-show="student.planStatus === 'exhausted'" class="text-orange-400">Clases agotadas</span>
                         </p>
                         <div class="flex items-center gap-2 mt-1 flex-wrap">
-                            <span class="flex items-center gap-1 text-xs text-amber-300/80">
+                            <span class="flex items-center gap-1 text-xs text-orange-400/80">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
