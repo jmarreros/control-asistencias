@@ -1,19 +1,35 @@
 <!DOCTYPE html>
-<html lang="es" style="background:#0a0a14;">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="color-scheme" content="dark">
     <meta name="theme-color" content="#0f0f1a">
     <title>{{ $title ?? 'Mi Asistencia' }} — Salsa Latin Motion</title>
+    <script>
+        (function () {
+            var t = localStorage.getItem('slm-theme') || 'dark';
+            var h = document.documentElement;
+            if (t === 'light') {
+                h.classList.add('light');
+                h.style.background = '#f0f2f7';
+                document.querySelector('meta[name="color-scheme"]').content = 'light';
+                document.querySelector('meta[name="theme-color"]').content = '#f0f2f7';
+            } else {
+                h.style.background = '#0a0a14';
+            }
+        })();
+    </script>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="preload" as="image" href="{{ asset('images/fondo.jpg') }}">
+    @stack('head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="text-white antialiased min-h-screen" style="background:#0a0a14;">
+<body class="text-white antialiased min-h-screen">
 
     {{-- Fondo fijo --}}
     <div style="position:fixed; inset:0; z-index:1; background-image:url('{{ asset('images/fondo.jpg') }}'); background-size:cover; background-position:center;"></div>
-    <div style="position:fixed; inset:0; z-index:2; background:rgba(0,0,0,0.30);"></div>
+    <div class="slm-overlay" style="position:fixed; inset:0; z-index:2; background:rgba(0,0,0,0.30);"></div>
 
     <main class="pb-8 min-h-screen max-w-lg mx-auto relative" style="z-index:3;">
         @yield('content')

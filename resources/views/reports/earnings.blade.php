@@ -38,6 +38,7 @@
     {{-- Exportar --}}
     <div class="flex justify-end">
         <a href="{{ route('reports.earnings.export', ['from' => $from, 'to' => $to]) }}"
+           data-turbo="false"
            class="flex items-center gap-2 bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-xl">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

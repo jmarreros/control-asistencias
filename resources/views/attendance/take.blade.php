@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@push('head')
+<meta name="turbo-cache-control" content="no-cache">
+@endpush
+
 @section('content')
 <div x-data="{
     students: {{ $students->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'present' => (bool)($existing[$s->id] ?? $defaultPresent), 'saving' => false, 'error' => false, 'planStatus' => $planStatuses[$s->id] ?? 'no_plan'])->toJson() }},
@@ -132,8 +136,8 @@
                    value="{{ $date->toDateString() }}"
                    max="{{ today()->toDateString() }}"
                    onchange="window.location.href='{{ route('attendance.take', $clase) }}?date=' + this.value"
-                   style="background:transparent; color: white;"
-                   class="flex-1 text-sm focus:outline-none w-full">
+                   style="background:transparent;"
+                   class="flex-1 text-sm text-white focus:outline-none w-full">
         </div>
 
         @if(!$dateInSchedule)
@@ -182,7 +186,7 @@
         </div>
     @else
         {{-- Buscador --}}
-        <div class="bg-white/5 backdrop-blur-sm px-4 py-2 border-b border-white/10">
+        <div class="slm-sticky px-4 py-2 border-b border-white/10" style="position:sticky; top:0; z-index:20;">
             <div class="relative">
                 <svg class="w-4 h-4 text-white/40 absolute left-3 top-2.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
@@ -263,8 +267,8 @@
          style="position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; background-color:rgba(0,0,0,0.7);"
          @click.self="modalOpen = false">
 
-        <div style="width:90%; max-width:26rem; height:70vh; background:rgba(15,15,30,0.95); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.15);"
-             class="rounded-2xl flex flex-col shadow-2xl"
+        <div class="slm-modal-panel rounded-2xl flex flex-col shadow-2xl"
+             style="width:90%; max-width:26rem; height:70vh; background:rgba(15,15,30,0.95); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,0.15);"
              @click.stop>
 
             {{-- Cabecera modal --}}

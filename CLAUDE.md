@@ -2,7 +2,7 @@
 
 App mobile-first para que el profesor registre asistencias desde el celular. Sin personal adicional.
 
-**Stack:** Laravel 11 · SQLite · Tailwind CSS (JIT) · Blade · Alpine.js v3 · Vite
+**Stack:** Laravel 11 · SQLite · Tailwind CSS (JIT) · Blade · Alpine.js v3 · Hotwire Turbo Drive · Vite
 
 ---
 
@@ -14,6 +14,46 @@ npm run dev                # Vite (Tailwind JIT + HMR)
 php artisan migrate        # correr migraciones pendientes
 php artisan migrate:fresh  # reiniciar BD completa
 ```
+
+---
+
+## Turbo Drive
+
+Integrado con `@hotwired/turbo` para navegación SPA sin recargas completas.
+
+### Configuración (`resources/js/app.js`)
+```js
+import * as Turbo from '@hotwired/turbo';
+import Alpine from 'alpinejs';
+
+window.Alpine = Alpine;
+Turbo.config.drive.progressBarDelay = 0; // barra visible desde el primer instante
+Alpine.start();
+```
+
+Alpine.js v3.15+ es compatible con Turbo sin configuración extra — su MutationObserver observa `document` (no `body`), por lo que detecta correctamente los nuevos elementos tras cada reemplazo de `<body>`.
+
+### Barra de progreso
+Turbo muestra su propia barra durante la navegación. Estilizada en `resources/css/app.css`:
+```css
+.turbo-progress-bar {
+    height: 4px;
+    background: linear-gradient(90deg, #6366f1, #a78bfa, #818cf8);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.9);
+}
+```
+La barra CSS interna del layout (`@keyframes slm-load`) sigue activa y se reproduce al cargarse el nuevo `<body>`, funcionando como confirmación visual de que la página terminó de renderizar.
+
+### Reglas en vistas
+- **`data-turbo="false"`** en todos los links de descarga de archivos (`/reports/earnings/export`, `/reports/students/export`) — Turbo no puede manejar respuestas binarias.
+- **`@push('head') <meta name="turbo-cache-control" content="no-cache"> @endpush`** en `attendance/take.blade.php` — evita que Turbo cachee el estado mutable de los toggles de asistencia.
+- Ambos layouts exponen `@stack('head')` justo antes de `@vite(...)` para que las vistas puedan inyectar metas en `<head>`.
+
+### CSRF
+Ambos layouts incluyen `<meta name="csrf-token" content="{{ csrf_token() }}">`. Los formularios Blade con `@csrf` funcionan correctamente porque Turbo los envía via fetch incluyendo el campo `_token` del body.
+
+### No cachear HTML con tokens de sesión
+Las páginas HTML siempre van a la red (network-first en el SW). **No usar stale-while-revalidate para páginas con `@csrf`** — el HTML cacheado tendría un token de sesión expirado y el formulario fallaría con error 419.
 
 ---
 
@@ -139,11 +179,12 @@ POST      /attendance/{clase}/toggle     AttendanceController@toggle
 POST      /attendance/{clase}/add-student AttendanceController@addStudent
 
 GET       /reports                       ReportController@index
+GET       /reports/students/export       ReportController@studentsExport  ← Excel alumnos + plan actual
+GET       /reports/earnings              ReportController@earnings         ← oculto temporalmente en UI
+GET       /reports/earnings/export       ReportController@earningsExport
 GET       /reports/clase/{clase}         ReportController@byClase
 GET       /reports/clase/{clase}/student/{student} ReportController@byClaseStudent
 GET       /reports/student/{student}     ReportController@byStudent
-GET       /reports/earnings              ReportController@earnings
-GET       /reports/earnings/export       ReportController@earningsExport
 ```
 
 ---
@@ -176,14 +217,17 @@ GET       /reports/earnings/export       ReportController@earningsExport
 - Fondo fijo: `public/images/fondo.jpg` con overlay oscuro (`rgba(0,0,0,0.25)`), posicionado con `position:fixed; inset:0; z-index:1/2`
 - Contenido principal en `<main z-index:3>` con `max-w-lg mx-auto` (centrado en pantallas anchas)
 - PWA: registra service worker `/sw.js` y apunta a `/manifest.json`; incluye `apple-touch-icon`, meta `theme-color` y `apple-mobile-web-app-*`
-- Barra de progreso superior: CSS puro con `@keyframes slm-load` (`transform:scaleX`), `z-index:99999`, corre automáticamente en cada carga de página sin JS
-- Splash screen (`#slm-splash`, `z-index:99998`): logo + nombre + tres puntos animados; visible solo en apertura en frío (sessionStorage `slm_s` vacío); mínimo 900ms, fade out 450ms; en navegación interna se oculta de inmediato
+- `<meta name="csrf-token">` en `<head>` para Turbo Drive
+- `@stack('head')` justo antes de `@vite(...)` — permite a las vistas inyectar metas (ej: `turbo-cache-control`)
+- Barra de progreso superior: CSS puro con `@keyframes slm-load` (`transform:scaleX`), `z-index:99999`, corre automáticamente al renderizarse el nuevo `<body>` en cada navegación Turbo
+- Splash screen (`#slm-splash`, `z-index:99998`): logo + nombre + tres puntos animados; visible solo en apertura en frío (sessionStorage `slm_s` vacío); mínimo 900ms, fade out 450ms; en navegación Turbo se oculta de inmediato
 - Favicons: `favicon.ico` (16/32/48px), `favicon-16x16.png`, `favicon-32x32.png` en `public/`
 
 ### `layouts/student.blade.php` (portal alumno)
 - Sin navegación inferior — solo contenido y botón logout en header
 - Flash messages en `position:fixed; bottom:1.5rem`
 - Logo en cabeceras enlaza a `route('student.dashboard')`
+- `<meta name="csrf-token">` en `<head>` y `@stack('head')` antes de `@vite(...)`
 
 ### Imágenes de cursos
 Archivos en `public/images/`: `salsa.jpg`, `bachata.jpg`, `lady.jpg`. Se asignan por nombre del curso:
@@ -225,6 +269,22 @@ var student = this.students[this.students.length - 1]; // proxy reactivo
 ---
 
 ## Lógica de negocio clave
+
+### Dashboard (`DashboardController@index`)
+Tres tarjetas de resumen calculadas en **5 queries**:
+
+| Query | Dato |
+|---|---|
+| `StudentPlan` count por mes | Planes este mes |
+| `Setting::preload([notify_days_before, notify_classes_remaining])` | Umbrales por vencer |
+| `Student::with('currentPlan')->get()` (2 queries) | Base para las dos métricas siguientes |
+| `Clase::where('active')->withCount('students')->get()` | Lista de cursos |
+
+- **Con plan activo**: alumnos cuyo `currentPlan` tiene `start_date <= hoy`, `end_date >= hoy` y `classes_remaining > 0` (o null para ilimitados). Coincide exactamente con la pestaña "Activos" de la pantalla de alumnos.
+- **Planes este mes**: planes con `start_date` en el mes actual (excluye soft-deleted).
+- **Por vencer**: alumnos cuyo `currentPlan` tiene status `ok` o `exhausted` Y (`daysLeft <= notify_days_before` O `classes_remaining <= notify_classes_remaining`). Misma lógica que la pestaña "Por vencer" de alumnos.
+- La tarjeta "Ingresos mes" fue eliminada — los ingresos están en Reportes → Ganancias.
+- `$activeStudents` y `$expiringCount` se calculan desde la misma colección cargada, sin queries duplicadas.
 
 ### Asistencia
 - `$defaultPresent = false` — por defecto todos ausentes (tanto hoy como fechas pasadas)
@@ -300,6 +360,24 @@ Seis claves: `price_8h` (120), `price_12h` (150), `price_16h` (170), `price_24h`
 - Teléfono normalizado: se quitan no-dígitos; si quedan 9 dígitos se antepone `51` (Perú)
 - URL generada: `https://wa.me/{phone}?text={encoded_message}`
 
+### Exportación de datos (Reportes)
+- **`StudentsExport`**: Excel con todos los alumnos ordenados por nombre + su `currentPlan`. Columnas: Nombre, DNI, Teléfono, Alumno activo, Tipo de plan, Estado del plan, Clases restantes, Fecha inicio, Fecha fin, Precio (S/), Promoción. Encabezado azul índigo. Ruta: `GET /reports/students/export`.
+- **`EarningsExport`**: Excel de ganancias filtrado por rango de fechas. Ruta: `GET /reports/earnings/export`. La opción de Ganancias está **oculta temporalmente** en `reports/index.blade.php` (comentario `{{-- Ganancias: oculto temporalmente --}}`).
+- Todos los links de descarga llevan `data-turbo="false"`.
+
+---
+
+## Service Worker (`public/sw.js`) — versión `slm-v3`
+
+| Tipo de recurso | Estrategia |
+|---|---|
+| `/build/`, `/images/`, `/icons/` | Cache-first (assets con hash o raramente cambiados) |
+| Páginas HTML | Network-first, fallback a cache si offline |
+
+**Actualizar caché de assets**: cambiar `const CACHE = 'slm-vX'` al desplegar si se modificaron imágenes o íconos sin cambiar su nombre. Los assets de `/build/` no necesitan bumping manual — Vite genera nombres con hash de contenido.
+
+**No cachear páginas HTML** con stale-while-revalidate — los tokens CSRF embebidos quedarían obsoletos causando errores 419.
+
 ---
 
 ## Estructura de archivos relevantes
@@ -310,10 +388,10 @@ app/
     Controllers/
       AttendanceController.php       ← lógica principal diaria
       ClaseController.php            ← parseSchedule() para JSON de horario
-      DashboardController.php
+      DashboardController.php        ← 5 queries; tarjetas: con plan activo, planes mes, por vencer
       EnrollmentController.php
       PinController.php              ← auth admin por PIN
-      ReportController.php
+      ReportController.php           ← studentsExport() + earningsExport()
       SettingController.php          ← precios + promociones + notificaciones WA
       StudentAuthController.php      ← auth alumno por DNI
       StudentController.php
@@ -326,29 +404,34 @@ app/
     Student.php · Clase.php · Attendance.php · StudentPlan.php · Setting.php
   Exports/
     EarningsExport.php               ← Excel ganancias (incluye promoción y fecha registro)
+    StudentsExport.php               ← Excel alumnos + plan actual (encabezado índigo)
 
-resources/views/
-  layouts/
-    app.blade.php                    ← shell admin con nav inferior
-    student.blade.php                ← shell portal alumno (sin nav)
-  auth/login.blade.php               ← login PIN admin
-  student/
-    login.blade.php                  ← login DNI alumno
-    dashboard.blade.php              ← asistencias del plan actual
-    clase.blade.php                  ← detalle día a día por curso
-  dashboard/index.blade.php
-  attendance/
-    index.blade.php                  ← lista de clases para tomar asistencia
-    take.blade.php                   ← pantalla principal (Alpine.js, toggle, modal)
-  students/
-    index.blade.php                  ← tabs Alpine: Todos · Activos · Por vencer · Vencido; botones WhatsApp
-    create.blade.php · edit.blade.php · plans.blade.php
-  clases/
-    index.blade.php · create.blade.php · edit.blade.php · enroll.blade.php
-  settings/edit.blade.php            ← precios + promociones + notificaciones WhatsApp + cambio de PIN
-  reports/
-    index.blade.php · clase.blade.php · clase-student.blade.php
-    student.blade.php · earnings.blade.php
+resources/
+  js/app.js                          ← importa Turbo + Alpine; Turbo.config.drive.progressBarDelay = 0
+  css/app.css                        ← incluye .turbo-progress-bar con gradiente violeta
+  views/
+    layouts/
+      app.blade.php                  ← shell admin; csrf-token meta; @stack('head'); nav inferior
+      student.blade.php              ← shell portal alumno; csrf-token meta; @stack('head')
+    auth/login.blade.php             ← login PIN admin
+    student/
+      login.blade.php                ← login DNI alumno
+      dashboard.blade.php            ← asistencias del plan actual
+      clase.blade.php                ← detalle día a día por curso
+    dashboard/index.blade.php        ← 3 tarjetas: con plan activo · planes mes · por vencer
+    attendance/
+      index.blade.php                ← lista de clases para tomar asistencia
+      take.blade.php                 ← pantalla principal (Alpine.js, toggle, modal); turbo-cache-control: no-cache
+    students/
+      index.blade.php                ← tabs Alpine: Todos · Activos · Por vencer · Vencido; botones WhatsApp
+      create.blade.php · edit.blade.php · plans.blade.php
+    clases/
+      index.blade.php · create.blade.php · edit.blade.php · enroll.blade.php
+    settings/edit.blade.php          ← precios + promociones + notificaciones WhatsApp + cambio de PIN
+    reports/
+      index.blade.php                ← botón exportar alumnos (verde); ganancias oculto temporalmente
+      clase.blade.php · clase-student.blade.php
+      student.blade.php · earnings.blade.php
 
 routes/web.php
 bootstrap/app.php                    ← alias middleware check.pin y check.student
@@ -361,7 +444,7 @@ database/
 
 public/
   manifest.json                      ← PWA manifest (nombre, iconos, theme_color, display:standalone)
-  sw.js                              ← Service Worker para PWA (cache slm-v2; precache fondo, logo-xs, icons)
+  sw.js                              ← Service Worker slm-v3; cache-first assets, network-first HTML
   favicon.ico                        ← favicon multi-tamaño (16/32/48px) generado desde logo.png
   favicon-16x16.png · favicon-32x32.png ← favicons PNG para navegadores modernos
   icons/                             ← apple-touch-icon.png y variantes

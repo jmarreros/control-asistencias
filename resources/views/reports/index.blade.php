@@ -10,24 +10,20 @@
 </div>
 
 <div class="p-4">
-    {{-- Ganancias --}}
-    <a href="{{ route('reports.earnings') }}"
-       class="flex items-center justify-between bg-emerald-500/15 border border-emerald-400/25 rounded-xl px-4 py-3.5 mb-5 backdrop-blur-sm active:bg-emerald-500/25">
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-emerald-500/25 flex items-center justify-center shrink-0">
-                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-            </div>
-            <div>
-                <p class="font-medium text-emerald-300">Ganancias</p>
-                <p class="text-xs text-emerald-400/70">Ingresos por planes del período</p>
-            </div>
-        </div>
-        <svg class="w-5 h-5 text-emerald-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-        </svg>
-    </a>
+    {{-- Ganancias: oculto temporalmente --}}
+
+    {{-- Exportar alumnos --}}
+    <div class="flex justify-end mb-5">
+        <a href="{{ route('reports.students.export') }}"
+           data-turbo="false"
+           class="flex items-center gap-2 bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-xl">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Exportar alumnos
+        </a>
+    </div>
 
     <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Asistencias por curso</h2>
     <div class="space-y-2 mb-6">

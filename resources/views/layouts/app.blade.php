@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" style="background:#0a0a14;">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -10,15 +10,31 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Asistencias">
     <title>{{ $title ?? 'Asistencias' }} — Salsa Latin Motion</title>
+    <script>
+        (function () {
+            var t = localStorage.getItem('slm-theme') || 'dark';
+            var h = document.documentElement;
+            if (t === 'light') {
+                h.classList.add('light');
+                h.style.background = '#f0f2f7';
+                document.querySelector('meta[name="color-scheme"]').content = 'light';
+                document.querySelector('meta[name="theme-color"]').content = '#f0f2f7';
+            } else {
+                h.style.background = '#0a0a14';
+            }
+        })();
+    </script>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="preload" as="image" href="{{ asset('images/fondo.jpg') }}">
+    @stack('head')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="text-white antialiased min-h-screen" style="background:#0a0a14;">
+<body class="text-white antialiased min-h-screen">
 
     <style>
         @keyframes slm-load {
@@ -39,10 +55,10 @@
     </div>
 
     {{-- Splash: solo en apertura en frío (sessionStorage vacío = nueva sesión PWA) --}}
-    <div id="slm-splash" style="position:fixed; inset:0; z-index:99998; background:#0a0a14; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;">
+    <div id="slm-splash" class="slm-splash" style="position:fixed; inset:0; z-index:99998; background:#0a0a14; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;">
         <img src="/images/logo-xs.jpg" alt="" style="width:96px; height:96px; border-radius:50%; object-fit:cover; box-shadow:0 0 40px rgba(99,102,241,0.5); margin-bottom:20px;">
-        <p style="color:#fff; font-size:21px; font-weight:700; letter-spacing:0.02em; margin:0;">Salsa Latin Motion</p>
-        <p style="color:rgba(255,255,255,0.35); font-size:12px; letter-spacing:0.12em; margin:6px 0 36px; text-transform:uppercase;">Control de Asistencias</p>
+        <p class="slm-splash-title" style="color:#fff; font-size:21px; font-weight:700; letter-spacing:0.02em; margin:0;">Salsa Latin Motion</p>
+        <p class="slm-splash-sub" style="color:rgba(255,255,255,0.35); font-size:12px; letter-spacing:0.12em; margin:6px 0 36px; text-transform:uppercase;">Control de Asistencias</p>
         <div style="display:flex; gap:8px; align-items:center;">
             <div style="width:7px; height:7px; border-radius:50%; background:#6366f1; animation:slm-dot 1.2s ease-in-out 0s infinite;"></div>
             <div style="width:7px; height:7px; border-radius:50%; background:#818cf8; animation:slm-dot 1.2s ease-in-out 0.2s infinite;"></div>
@@ -73,14 +89,14 @@
 
     {{-- Fondo fijo --}}
     <div style="position:fixed; inset:0; z-index:1; background-image:url('{{ asset('images/fondo.jpg') }}'); background-size:cover; background-position:center;"></div>
-    <div style="position:fixed; inset:0; z-index:2; background:rgba(0,0,0,0.25);"></div>
+    <div class="slm-overlay" style="position:fixed; inset:0; z-index:2; background:rgba(0,0,0,0.25);"></div>
 
     <main class="pb-20 min-h-screen max-w-lg mx-auto relative" style="z-index:3;">
         @yield('content')
     </main>
 
     {{-- Navegación inferior fija --}}
-    <nav style="position:fixed; bottom:0; left:0; right:0; z-index:40; backdrop-filter:blur(12px); background:rgba(0,0,0,0.5); border-top:1px solid rgba(255,255,255,0.1); max-width:32rem; margin:0 auto;">
+    <nav class="slm-nav" style="position:fixed; bottom:0; left:0; right:0; z-index:40; backdrop-filter:blur(12px); background:rgba(0,0,0,0.5); border-top:1px solid rgba(255,255,255,0.1); max-width:32rem; margin:0 auto;">
         <div class="flex">
             <a href="{{ route('dashboard') }}"
                class="flex-1 flex flex-col items-center py-2 text-xs {{ request()->routeIs('dashboard') ? 'text-indigo-400' : 'text-white/50' }}">
@@ -90,14 +106,6 @@
                 </svg>
                 Inicio
             </a>
-            <a href="{{ route('students.index') }}"
-               class="flex-1 flex flex-col items-center py-2 text-xs {{ request()->routeIs('students.*') ? 'text-indigo-400' : 'text-white/50' }}">
-                <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                Alumnos
-            </a>
             <a href="{{ route('attendance.index') }}"
                class="flex-1 flex flex-col items-center py-2 text-xs {{ request()->routeIs('attendance.*') ? 'text-teal-400' : 'text-white/50' }}">
                 <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,6 +113,14 @@
                           d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
                 Asistencia
+            </a>
+            <a href="{{ route('students.index') }}"
+               class="flex-1 flex flex-col items-center py-2 text-xs {{ request()->routeIs('students.*') ? 'text-indigo-400' : 'text-white/50' }}">
+                <svg class="w-6 h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Alumnos
             </a>
             <a href="{{ route('clases.index') }}"
                class="flex-1 flex flex-col items-center py-2 text-xs {{ request()->routeIs('clases.*') ? 'text-indigo-400' : 'text-white/50' }}">

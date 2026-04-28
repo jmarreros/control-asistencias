@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\EarningsExport;
+use App\Exports\StudentsExport;
 use App\Models\Attendance;
 use App\Models\Clase;
 use App\Models\Student;
@@ -66,6 +67,13 @@ class ReportController extends Controller
         ]);
 
         return view('reports.earnings', compact('from', 'to', 'plans', 'total', 'byQuota'));
+    }
+
+    public function studentsExport()
+    {
+        $filename = 'alumnos_' . now()->format('Y-m-d') . '.xlsx';
+
+        return Excel::download(new StudentsExport(), $filename);
     }
 
     public function earningsExport(Request $request)

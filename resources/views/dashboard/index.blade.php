@@ -33,56 +33,70 @@
     <div class="grid grid-cols-3 gap-3 mb-6">
         <div class="bg-indigo-500/20 border border-indigo-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
             <p class="text-2xl font-bold text-indigo-300">{{ $activeStudents }}</p>
-            <p class="text-xs text-white/60 mt-0.5">Alumnos activos</p>
+            <p class="text-xs text-white/60 mt-0.5">Con plan activo</p>
         </div>
         <div class="bg-purple-500/20 border border-purple-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
             <p class="text-2xl font-bold text-purple-300">{{ $monthlyPlans }}</p>
             <p class="text-xs text-white/60 mt-0.5">Planes este mes</p>
         </div>
-        <div class="bg-emerald-500/20 border border-emerald-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
-            <p class="text-xl font-bold text-emerald-300">S/{{ number_format($monthlyIncome, 0) }}</p>
-            <p class="text-xs text-white/60 mt-0.5">Ingresos mes</p>
+        <div class="bg-orange-500/20 border border-orange-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
+            <p class="text-2xl font-bold text-orange-300">{{ $expiringCount }}</p>
+            <p class="text-xs text-white/60 mt-0.5">Por vencer</p>
         </div>
     </div>
 
     <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Tomar asistencia</h2>
 
+    <div class="space-y-3">
     @forelse($activeClases as $clase)
         @php
-            $nombre = strtolower($clase->name);
-            $img = str_contains($nombre, 'salsa')    ? 'salsa.jpg'
-                 : (str_contains($nombre, 'bachata') ? 'bachata.jpg'
-                 : (str_contains($nombre, 'lady')    ? 'lady.jpg'
-                 : null));
+            $isToday = is_array($clase->schedule) && isset($clase->schedule[$todayKey]);
+            $nombre  = strtolower($clase->name);
+            $img     = str_contains($nombre, 'salsa')    ? 'salsa.jpg'
+                     : (str_contains($nombre, 'bachata') ? 'bachata.jpg'
+                     : (str_contains($nombre, 'lady')    ? 'lady.jpg'
+                     : null));
         @endphp
-        <a href="{{ route('attendance.take', $clase) }}"
-           class="block bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl p-4 mb-3 active:bg-white/20">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    @if($img)
-                        <img src="{{ asset('images/' . $img) }}"
-                             class="w-10 h-10 rounded-full object-cover shrink-0" alt="{{ $clase->name }}">
+        <div class="bg-white/10 backdrop-blur-sm border rounded-xl overflow-hidden
+                    {{ $isToday ? 'border-teal-400/40' : 'border-white/15' }}">
+            <a href="{{ route('attendance.take', $clase) }}"
+               class="flex items-center p-4 active:bg-white/10">
+                @if($img)
+                    <img src="{{ asset('images/' . $img) }}"
+                         class="w-10 h-10 rounded-full object-cover shrink-0 mr-3" alt="{{ $clase->name }}">
+                @endif
+                <div class="flex-1">
+                    <p class="font-semibold text-white text-lg">{{ $clase->name }}</p>
+                    @if($clase->schedule)
+                        <p class="text-sm text-white/60">{!! $clase->scheduleText() !!}</p>
                     @endif
-                    <div>
-                        <p class="font-semibold text-white">{{ $clase->name }}</p>
-                        @if($clase->schedule)
-                            <p class="text-sm text-white/60 mt-0.5">{!! $clase->scheduleText() !!}</p>
-                        @endif
-                        <p class="text-xs text-white/40 mt-1">{{ $clase->students_count }} alumno{{ $clase->students_count != 1 ? 's' : '' }}</p>
-                    </div>
+                    <p class="text-xs text-white/40 mt-1">{{ $clase->students_count }} alumno{{ $clase->students_count != 1 ? 's' : '' }}</p>
                 </div>
-                <svg class="w-5 h-5 text-white/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </div>
-        </a>
+                <div class="text-right ml-3 shrink-0">
+                    @if($isToday)
+                        @php
+                            $todaySlot = $clase->schedule[$todayKey];
+                            $start = is_array($todaySlot) ? $todaySlot['start'] : $todaySlot;
+                            $end   = is_array($todaySlot) ? ($todaySlot['end'] ?? '') : '';
+                        @endphp
+                        <span class="block bg-teal-500 text-white text-sm font-semibold px-4 py-2 rounded-lg text-center">
+                            Hoy
+                        </span>
+                        <span class="block text-teal-300 text-sm font-bold mt-1 text-center">
+                            {{ $start }}{{ $end ? '–'.$end : '' }}
+                        </span>
+                    @endif
+                </div>
+            </a>
+        </div>
     @empty
         <div class="text-center py-8 text-white/40">
             <p class="text-sm">No hay clases activas.</p>
-            <a href="{{ route('clases.create') }}" class="text-indigo-400 text-sm font-medium mt-1 inline-block">
+            <a href="{{ route('clases.create') }}" class="text-teal-400 text-sm font-medium mt-1 inline-block">
                 Crear primer curso →
             </a>
         </div>
     @endforelse
+    </div>
 </div>
 @endsection

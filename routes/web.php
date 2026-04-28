@@ -66,6 +66,7 @@ Route::middleware('check.pin')->group(function () {
 
     // Reportes
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/students/export', [ReportController::class, 'studentsExport'])->name('reports.students.export');
     Route::get('reports/earnings', [ReportController::class, 'earnings'])->name('reports.earnings');
     Route::get('reports/earnings/export', [ReportController::class, 'earningsExport'])->name('reports.earnings.export');
     Route::get('reports/clase/{clase}', [ReportController::class, 'byClase'])->name('reports.clase');

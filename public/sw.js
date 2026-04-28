@@ -1,4 +1,4 @@
-const CACHE = 'slm-v2';
+const CACHE = 'slm-v3';
 const PRECACHE = [
     '/images/fondo.jpg',
     '/images/logo-xs.jpg',
@@ -23,14 +23,17 @@ self.addEventListener('activate', e => {
     self.clients.claim();
 });
 
-// Network-first para páginas, cache-first para imágenes/assets
 self.addEventListener('fetch', e => {
     if (e.request.method !== 'GET') return;
 
     const url = new URL(e.request.url);
 
     // Assets estáticos: cache-first
-    if (url.pathname.startsWith('/images/') || url.pathname.startsWith('/icons/') || url.pathname.startsWith('/build/')) {
+    if (
+        url.pathname.startsWith('/images/') ||
+        url.pathname.startsWith('/icons/') ||
+        url.pathname.startsWith('/build/')
+    ) {
         e.respondWith(
             caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
                 const clone = res.clone();
@@ -41,7 +44,7 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // Páginas: network-first
+    // Páginas HTML: network-first, fallback a cache si offline
     e.respondWith(
         fetch(e.request).catch(() => caches.match(e.request))
     );
