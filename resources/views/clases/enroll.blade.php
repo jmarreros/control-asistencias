@@ -83,7 +83,8 @@
         @endforelse
     </div>
 
-    <div style="position:fixed; bottom:4rem; left:0; right:0; max-width:32rem; margin:0 auto; padding:1rem; backdrop-filter:blur(12px); background:rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.1);">
+    <div class="bg-black/40 border-t border-white/10"
+         style="position:fixed; bottom:4rem; left:0; right:0; max-width:32rem; margin:0 auto; padding:1rem; backdrop-filter:blur(12px);">
         <button type="submit"
                 class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl text-lg">
             Guardar matrícula

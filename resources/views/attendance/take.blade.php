@@ -6,7 +6,7 @@
 
 @section('content')
 <div x-data="{
-    students: {{ $students->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'present' => (bool)($existing[$s->id] ?? $defaultPresent), 'saving' => false, 'error' => false, 'planStatus' => $planStatuses[$s->id] ?? 'no_plan'])->toJson() }},
+    students: {{ $students->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'dni' => $s->dni ?? '', 'present' => (bool)($existing[$s->id] ?? $defaultPresent), 'saving' => false, 'error' => false, 'planStatus' => $planStatuses[$s->id] ?? 'no_plan'])->toJson() }},
     extraStudents: {{ $extraStudents->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'phone' => $s->phone ?? '', 'planStatus' => $extraPlanStatuses[$s->id] ?? 'no_plan'])->toJson() }},
     search: '',
     modalOpen: false,
@@ -20,7 +20,10 @@
     get filteredStudents() {
         var q = this.search.toLowerCase().trim();
         if (!q) return this.students;
-        return this.students.filter(function(s) { return s.name.toLowerCase().indexOf(q) !== -1; });
+        return this.students.filter(function(s) {
+            return s.name.toLowerCase().indexOf(q) !== -1 ||
+                   (s.dni && s.dni.indexOf(q) !== -1);
+        });
     },
     getSearchResults() {
         var q = this.modalSearch.toLowerCase().trim();
@@ -192,7 +195,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
                 </svg>
                 <input type="search" x-model="search"
-                       placeholder="Buscar alumno..."
+                       placeholder="Buscar alumno por nombre o DNI"
                        autocomplete="off"
                        :class="search ? 'pr-8' : 'pr-4'"
                        class="w-full pl-9 py-2 rounded-xl text-sm border border-white/20
@@ -312,7 +315,7 @@
                 </template>
                 <div x-show="getSearchResults().length === 0"
                      class="px-4 py-8 text-center text-sm text-white/40">
-                    <span x-text="modalSearch ? 'Sin resultados para la búsqueda' : 'No hay alumnos no inscritos'"></span>
+                    <span x-text="modalSearch ? 'Sin resultados para la búsqueda' : '😃 Todos los alumnos están inscritos'"></span>
                 </div>
             </div>
         </div>

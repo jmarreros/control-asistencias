@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentPlanController;
 use App\Http\Controllers\ClaseController;
@@ -63,6 +64,10 @@ Route::middleware('check.pin')->group(function () {
     // Configuración
     Route::get('settings', [SettingController::class, 'edit'])->name('settings.edit');
     Route::post('settings', [SettingController::class, 'update'])->name('settings.update');
+
+    // Importación
+    Route::get('import', [ImportController::class, 'show'])->name('import.show');
+    Route::post('import', [ImportController::class, 'import'])->name('import.process');
 
     // Reportes
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');

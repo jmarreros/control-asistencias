@@ -9,6 +9,7 @@ use App\Models\Clase;
 use App\Models\Student;
 use App\Models\StudentPlan;
 use Illuminate\Http\Request;
+use App\Models\Setting;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ReportController extends Controller
@@ -17,8 +18,9 @@ class ReportController extends Controller
     {
         $clases = Clase::orderBy('name')->get();
         $students = Student::where('active', true)->orderBy('name')->get();
+        $showEarnings = (bool) Setting::get('show_earnings', 0);
 
-        return view('reports.index', compact('clases', 'students'));
+        return view('reports.index', compact('clases', 'students', 'showEarnings'));
     }
 
     public function byClase(Request $request, Clase $clase)

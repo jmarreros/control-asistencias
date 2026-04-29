@@ -88,8 +88,9 @@
 </form>
 
 <script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('scheduleSelector', (initialSelected, initialTimes) => ({
+(function () {
+    function registerScheduleSelector() {
+        Alpine.data('scheduleSelector', (initialSelected, initialTimes) => ({
         selected: initialSelected,
         times: initialTimes,
         toggle(day) {
@@ -124,6 +125,12 @@ document.addEventListener('alpine:init', () => {
             }
         }
     }));
-});
+    }
+    if (window.Alpine) {
+        registerScheduleSelector();
+    } else {
+        document.addEventListener('alpine:init', registerScheduleSelector);
+    }
+})();
 </script>
 @endsection

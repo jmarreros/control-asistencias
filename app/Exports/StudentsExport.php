@@ -43,7 +43,6 @@ class StudentsExport implements FromCollection, WithHeadings, WithMapping, WithS
             'Clases restantes',
             'Fecha inicio',
             'Fecha fin',
-            'Precio (S/)',
             'Promoción',
         ];
     }
@@ -61,8 +60,7 @@ class StudentsExport implements FromCollection, WithHeadings, WithMapping, WithS
             $plan ? (self::STATUS_LABELS[$plan->status()] ?? '—') : '—',
             $plan ? ($plan->classesRemaining() !== null ? $plan->classesRemaining() : 'Ilimitadas') : '—',
             $plan ? Carbon::parse($plan->start_date)->format('d/m/Y') : '—',
-            $plan ? Carbon::parse($plan->end_date)->format('d/m/Y')   : '—',
-            $plan && $plan->price ? number_format($plan->price, 2)    : '—',
+            $plan ? Carbon::parse($plan->end_date)->format('d/m/Y') : '—',
             $plan ? ($plan->promotionLabel() ?? '—') : '—',
         ];
     }

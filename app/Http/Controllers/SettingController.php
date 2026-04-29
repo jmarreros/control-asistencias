@@ -32,7 +32,11 @@ class SettingController extends Controller
             'notify_expired_message'   => Setting::get('notify_expired_message', ''),
         ];
 
-        return view('settings.edit', compact('prices', 'promos', 'notify'));
+        $reports = [
+            'show_earnings' => (bool) Setting::get('show_earnings', 0),
+        ];
+
+        return view('settings.edit', compact('prices', 'promos', 'notify', 'reports'));
     }
 
     public function update(Request $request)
@@ -81,6 +85,8 @@ class SettingController extends Controller
         Setting::set('notify_classes_remaining', $request->notify_classes_remaining);
         Setting::set('notify_message',           $request->notify_message);
         Setting::set('notify_expired_message',   $request->notify_expired_message);
+
+        Setting::set('show_earnings', $request->boolean('show_earnings') ? 1 : 0);
 
         return redirect()->route('settings.edit')->with('success', 'Configuración guardada.');
     }

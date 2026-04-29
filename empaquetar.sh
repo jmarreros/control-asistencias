@@ -21,7 +21,10 @@ zip -r "$OUTPUT" . \
     --exclude "storage/framework/cache/data/*" \
     --exclude "storage/framework/sessions/*" \
     --exclude "storage/framework/views/*" \
-    --exclude "empaquetar.sh"
+    --exclude "empaquetar.sh" \
+    --exclude "database/*.sqlite" \
+    --exclude "database/*.sqlite-shm" \
+    --exclude "database/*.sqlite-wal"
 
 # Agregar carpetas vacías requeridas por Laravel en producción
 zip "$OUTPUT" \

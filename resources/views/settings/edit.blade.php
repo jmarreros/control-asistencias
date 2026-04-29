@@ -16,6 +16,56 @@
     </div>
 </div>
 
+{{-- Aspecto visual: sólo localStorage, fuera del form --}}
+<div class="px-4 pt-4"
+     x-data="{
+         theme: localStorage.getItem('slm-theme') || 'dark',
+         setTheme(t) {
+             this.theme = t;
+             localStorage.setItem('slm-theme', t);
+             var h = document.documentElement;
+             if (t === 'light') {
+                 h.classList.add('light');
+                 h.style.background = '#f0f2f7';
+             } else {
+                 h.classList.remove('light');
+                 h.style.background = '#0a0a14';
+             }
+         }
+     }">
+    <div class="rounded-xl overflow-hidden border border-white/20">
+        <div class="px-4 py-3 border-b border-white/10">
+            <p class="text-xs font-semibold text-white/50 uppercase tracking-wide">Aspecto visual</p>
+        </div>
+        <div class="flex items-center justify-between px-4 py-4">
+            <div>
+                <p class="text-sm font-medium text-white/90">Tema de la aplicación</p>
+                <p class="text-xs text-white/40 mt-0.5"
+                   x-text="theme === 'light' ? 'Modo claro activo' : 'Modo oscuro activo'"></p>
+            </div>
+            <div class="flex items-center gap-1 bg-white/10 rounded-xl p-1">
+                <button type="button" @click="setTheme('dark')"
+                        :class="theme === 'dark' ? 'bg-indigo-600 text-white shadow' : 'text-white/50'"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/>
+                    </svg>
+                    Oscuro
+                </button>
+                <button type="button" @click="setTheme('light')"
+                        :class="theme === 'light' ? 'bg-amber-400 text-white shadow' : 'text-white/50'"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+                    </svg>
+                    Claro
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <form method="POST" action="{{ route('settings.update') }}" class="p-4 space-y-4">
     @csrf
 
@@ -78,6 +128,29 @@
             </label>
         </div>
         @endforeach
+    </div>
+
+    {{-- Reportes --}}
+    <div class="rounded-xl overflow-hidden border border-white/20">
+        <div class="px-4 py-3 border-b border-white/10">
+            <p class="text-xs font-semibold text-white/50 uppercase tracking-wide">Reportes</p>
+        </div>
+        <div class="flex items-center justify-between px-4 py-4">
+            <div>
+                <p class="text-sm font-medium text-white/90">Mostrar reporte de ganancias</p>
+                <p class="text-xs text-white/40 mt-0.5">Habilita la sección de ingresos en Reportes</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer ml-4 shrink-0">
+                <input type="hidden" name="show_earnings" value="0">
+                <input type="checkbox" name="show_earnings" value="1" class="sr-only peer"
+                       {{ old('show_earnings', $reports['show_earnings']) ? 'checked' : '' }}>
+                <div class="w-11 h-6 bg-white/20 rounded-full peer
+                            peer-checked:after:translate-x-full peer-checked:after:border-white
+                            after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                            after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all
+                            peer-checked:bg-emerald-500"></div>
+            </label>
+        </div>
     </div>
 
     {{-- Notificaciones WhatsApp --}}
@@ -199,4 +272,27 @@
         Guardar configuración
     </button>
 </form>
+
+{{-- Importar datos --}}
+<div class="px-4 pb-6 pt-2">
+    <div class="rounded-xl overflow-hidden border border-white/20">
+        <div class="px-4 py-3 border-b border-white/10">
+            <p class="text-xs font-semibold text-white/50 uppercase tracking-wide">Importar datos</p>
+        </div>
+        <div class="flex items-center justify-between px-4 py-4">
+            <div>
+                <p class="text-sm font-medium text-white/90">Importar alumnos desde CSV</p>
+                <p class="text-xs text-white/40 mt-0.5">Carga masiva de alumnos y planes</p>
+            </div>
+            <a href="{{ route('import.show') }}"
+               class="flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-xl shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Importar
+            </a>
+        </div>
+    </div>
+</div>
 @endsection

@@ -75,14 +75,21 @@
                 // Primera carga / apertura en frío: mostrar splash mínimo 900ms
                 sessionStorage.setItem('slm_s', '1');
                 var t0 = Date.now();
-                window.addEventListener('DOMContentLoaded', function () {
+                function hideSplash() {
                     var wait = Math.max(0, 900 - (Date.now() - t0));
                     setTimeout(function () {
                         splash.style.transition = 'opacity 0.45s ease';
                         splash.style.opacity = '0';
                         setTimeout(function () { splash.style.display = 'none'; }, 450);
                     }, wait);
-                });
+                }
+                // DOMContentLoaded no se dispara en navegaciones Turbo Drive;
+                // si el DOM ya está listo, ejecutar directamente.
+                if (document.readyState === 'loading') {
+                    window.addEventListener('DOMContentLoaded', hideSplash);
+                } else {
+                    hideSplash();
+                }
             }
         })();
     </script>
