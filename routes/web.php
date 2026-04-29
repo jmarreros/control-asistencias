@@ -14,18 +14,9 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentPortalController;
 use Illuminate\Support\Facades\Route;
 
-// Raíz → portal alumno
-Route::get('/', fn() => redirect()->route('student.login'));
-
-// --- Portal del alumno ---
-Route::get('/student/login', [StudentAuthController::class, 'show'])->name('student.login');
-Route::post('/student/login', [StudentAuthController::class, 'authenticate'])->name('student.login.post');
-Route::post('/student/logout', [StudentAuthController::class, 'logout'])->name('student.logout');
-
-Route::middleware('check.student')->group(function () {
-    Route::get('/student', [StudentPortalController::class, 'index'])->name('student.dashboard');
-    Route::get('/student/clase/{clase}', [StudentPortalController::class, 'byClase'])->name('student.clase');
-});
+// Portal alumno — búsqueda pública por DNI (sin autenticación)
+Route::get('/', [StudentPortalController::class, 'publicSearch'])->name('student.search');
+Route::get('/student/lookup', [StudentPortalController::class, 'lookup'])->name('student.lookup');
 
 // --- Autenticación PIN (admin) ---
 Route::get('/login', [PinController::class, 'show'])->name('login');
@@ -56,6 +47,7 @@ Route::middleware('check.pin')->group(function () {
 
     // Asistencias
     Route::get('attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::get('attendance/student/{student}', [AttendanceController::class, 'takeByStudent'])->name('attendance.take-student');
     Route::get('attendance/{clase}/take', [AttendanceController::class, 'take'])->name('attendance.take');
     Route::post('attendance/{clase}/save', [AttendanceController::class, 'save'])->name('attendance.save');
     Route::post('attendance/{clase}/toggle', [AttendanceController::class, 'toggle'])->name('attendance.toggle');

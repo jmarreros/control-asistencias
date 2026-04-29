@@ -53,7 +53,7 @@
 
         <p class="text-center mt-6 text-white/30 text-xs">
             ¿Eres alumno?
-            <a href="{{ route('student.login') }}" class="text-white/50 underline">Acceso alumnos</a>
+            <a href="{{ route('student.search') }}" class="text-white/50 underline">Acceso alumnos</a>
         </p>
 
     </div>

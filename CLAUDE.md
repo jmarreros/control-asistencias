@@ -46,7 +46,7 @@ La barra CSS interna del layout (`@keyframes slm-load`) sigue activa y se reprod
 
 ### Reglas en vistas
 - **`data-turbo="false"`** en todos los links de descarga de archivos (`/reports/earnings/export`, `/reports/students/export`) — Turbo no puede manejar respuestas binarias.
-- **`@push('head') <meta name="turbo-cache-control" content="no-cache"> @endpush`** en `attendance/take.blade.php` — evita que Turbo cachee el estado mutable de los toggles de asistencia.
+- **`@push('head') <meta name="turbo-cache-control" content="no-cache"> @endpush`** en `attendance/take.blade.php` y `attendance/take-student.blade.php` — evita que Turbo cachee el estado mutable de los toggles de asistencia.
 - Ambos layouts exponen `@stack('head')` justo antes de `@vite(...)` para que las vistas puedan inyectar metas en `<head>`.
 
 ### CSRF
@@ -54,6 +54,16 @@ Ambos layouts incluyen `<meta name="csrf-token" content="{{ csrf_token() }}">`. 
 
 ### No cachear HTML con tokens de sesión
 Las páginas HTML siempre van a la red (network-first en el SW). **No usar stale-while-revalidate para páginas con `@csrf`** — el HTML cacheado tendría un token de sesión expirado y el formulario fallaría con error 419.
+
+### Splash screen y Turbo Drive
+El splash screen usa `document.readyState` para detectar si el DOM ya está listo en lugar de `DOMContentLoaded`, porque ese evento **no se dispara en navegaciones Turbo** (solo en la carga inicial del documento). Patrón correcto:
+```js
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', hideSplash);
+} else {
+    hideSplash(); // Turbo navigation: DOM ya disponible
+}
+```
 
 ---
 
@@ -83,6 +93,7 @@ Clave primaria string. Registros actuales:
 | Precios | `price_8h`, `price_12h`, `price_16h`, `price_24h`, `price_full1`, `price_full2` |
 | Promociones | `promo_10`, `promo_20`, `promo_30`, `promo_2x1` |
 | Notificaciones WA | `notify_days_before`, `notify_classes_remaining`, `notify_message`, `notify_expired_message` |
+| Reportes | `show_earnings` (bool; 0 = oculto, 1 = visible en /reports) |
 | Seguridad | `app_pin` (PIN admin; si no existe, cae a `env('APP_PIN', '1234')`) |
 
 Usar `Setting::get('key', default)` y `Setting::set('key', value)`.
@@ -146,13 +157,10 @@ Guardadas como string `YYYY-MM-DD` (sin cast a date en el modelo). Usar siempre 
 
 ## Rutas
 
-### Portal alumno (público)
+### Portal alumno (público, sin autenticación)
 ```
-GET       /                               → redirige a /student/login
-GET/POST  /student/login                 StudentAuthController (auth por DNI)
-POST      /student/logout                StudentAuthController@logout
-GET       /student                       StudentPortalController@index (dashboard alumno)
-GET       /student/clase/{clase}         StudentPortalController@byClase (detalle por día)
+GET  /                    StudentPortalController@publicSearch  ← búsqueda pública por DNI
+GET  /student/lookup      StudentPortalController@lookup        ← endpoint AJAX JSON (dni=?)
 ```
 
 ### Admin (protegidas por `check.pin`)
@@ -172,15 +180,19 @@ DELETE    /students/{student}/plans/{plan} StudentPlanController@destroy
 GET/POST  /clases                        ClaseController (index, create, store, edit, update, destroy)
 GET/POST  /clases/{clase}/enroll         EnrollmentController (edit, update)
 
-GET       /attendance                    AttendanceController@index
+GET       /attendance                    AttendanceController@index         ← buscador de alumnos
+GET       /attendance/student/{student}  AttendanceController@takeByStudent ← cursos del día del alumno
 GET       /attendance/{clase}/take       AttendanceController@take
 POST      /attendance/{clase}/save       AttendanceController@save
 POST      /attendance/{clase}/toggle     AttendanceController@toggle
 POST      /attendance/{clase}/add-student AttendanceController@addStudent
 
+GET       /import                        ImportController@show
+POST      /import                        ImportController@import
+
 GET       /reports                       ReportController@index
 GET       /reports/students/export       ReportController@studentsExport  ← Excel alumnos + plan actual
-GET       /reports/earnings              ReportController@earnings         ← oculto temporalmente en UI
+GET       /reports/earnings              ReportController@earnings         ← visible solo si show_earnings=1
 GET       /reports/earnings/export       ReportController@earningsExport
 GET       /reports/clase/{clase}         ReportController@byClase
 GET       /reports/clase/{clase}/student/{student} ReportController@byClaseStudent
@@ -195,16 +207,13 @@ GET       /reports/student/{student}     ReportController@byStudent
 - PIN se lee de `Setting::get('app_pin')` primero; si no existe cae a `env('APP_PIN', '1234')`
 - Se puede cambiar desde `/settings` (sección colapsable al final de la página)
 - `PinController`: verifica PIN → `session(['pin_authenticated' => true])`
-- Al autenticar como admin se elimina la sesión de alumno (`session()->forget('student_id')`)
 - `CheckPin` middleware: comprueba `session('pin_authenticated')`
 - Alias `check.pin` en `bootstrap/app.php`
 
-### Alumno (DNI)
-- `StudentAuthController`: busca alumno por DNI → `session(['student_id' => $id])`
-- Solo alumnos con `active = true` pueden ingresar (sin restricción de plan)
-- `CheckStudentAuth` middleware: comprueba `session('student_id')`
-- Alias `check.student` en `bootstrap/app.php`
-- Las dos sesiones coexisten de forma independiente
+### Portal alumno
+- **Sin autenticación** — cualquier persona puede consultar ingresando un DNI en `/`
+- `StudentPortalController@lookup`: busca alumno activo por DNI, retorna JSON con nombre y datos del plan actual
+- No hay sesión ni cookie de alumno
 
 ---
 
@@ -220,13 +229,12 @@ GET       /reports/student/{student}     ReportController@byStudent
 - `<meta name="csrf-token">` en `<head>` para Turbo Drive
 - `@stack('head')` justo antes de `@vite(...)` — permite a las vistas inyectar metas (ej: `turbo-cache-control`)
 - Barra de progreso superior: CSS puro con `@keyframes slm-load` (`transform:scaleX`), `z-index:99999`, corre automáticamente al renderizarse el nuevo `<body>` en cada navegación Turbo
-- Splash screen (`#slm-splash`, `z-index:99998`): logo + nombre + tres puntos animados; visible solo en apertura en frío (sessionStorage `slm_s` vacío); mínimo 900ms, fade out 450ms; en navegación Turbo se oculta de inmediato
+- Splash screen (`#slm-splash`, `z-index:99998`): logo + nombre + tres puntos animados; visible solo en apertura en frío (sessionStorage `slm_s` vacío); mínimo 900ms, fade out 450ms; usa `document.readyState` para compatibilidad con Turbo Drive
 - Favicons: `favicon.ico` (16/32/48px), `favicon-16x16.png`, `favicon-32x32.png` en `public/`
 
 ### `layouts/student.blade.php` (portal alumno)
-- Sin navegación inferior — solo contenido y botón logout en header
+- Sin navegación inferior ni botón logout — solo contenido
 - Flash messages en `position:fixed; bottom:1.5rem`
-- Logo en cabeceras enlaza a `route('student.dashboard')`
 - `<meta name="csrf-token">` en `<head>` y `@stack('head')` antes de `@vite(...)`
 
 ### Imágenes de cursos
@@ -237,7 +245,7 @@ $img = str_contains(strtolower($clase->name), 'salsa')   ? 'salsa.jpg'
      : (str_contains(strtolower($clase->name), 'lady')    ? 'lady.jpg'
      : null));
 ```
-Si no hay imagen, se muestra un avatar circular con la inicial. Este patrón está presente en dashboard, attendance/index, attendance/take, clases/index, clases/edit, clases/enroll, reports/index y reports/clase.
+Si no hay imagen, se muestra un avatar circular con la inicial. Este patrón está presente en dashboard, attendance/take, attendance/take-student, clases/index, clases/edit, clases/enroll, reports/index y reports/clase.
 
 ### Modales con Alpine.js
 Los modales con `position:fixed` deben usar **inline style** para el posicionamiento (no clases Tailwind) porque Tailwind JIT a veces no compila clases usadas solo en modales. Alpine gestiona el `display` del `x-show` via inline style — poner `display:flex` en clase CSS (`class="flex ..."`) no en el inline style, para que Alpine pueda ocultarlo/mostrarlo correctamente.
@@ -266,12 +274,28 @@ var student = this.students[this.students.length - 1]; // proxy reactivo
 ### Datos PHP → Alpine (JSON en atributos)
 `{{ $collection->toJson() }}` pasa por `htmlspecialchars` de Blade — los `"` se escapan a `&quot;` en el HTML pero el browser los decodifica correctamente para Alpine.
 
+### `Alpine.data()` con Turbo Drive
+`document.addEventListener('alpine:init', ...)` solo se dispara una vez en la carga inicial. En navegaciones Turbo Drive el script se re-ejecuta pero Alpine ya está inicializado, por lo que `alpine:init` nunca vuelve a disparar y el componente no queda registrado. Patrón correcto:
+```js
+(function () {
+    function register() {
+        Alpine.data('nombreComponente', () => ({ ... }));
+    }
+    if (window.Alpine) {
+        register(); // Turbo navigation: Alpine ya está inicializado
+    } else {
+        document.addEventListener('alpine:init', register);
+    }
+})();
+```
+Aplicado en `clases/create.blade.php` y `clases/edit.blade.php` (`scheduleSelector`).
+
 ---
 
 ## Lógica de negocio clave
 
 ### Dashboard (`DashboardController@index`)
-Tres tarjetas de resumen calculadas en **5 queries**:
+Tres tarjetas de resumen + lista de cursos para tomar asistencia:
 
 | Query | Dato |
 |---|---|
@@ -280,21 +304,28 @@ Tres tarjetas de resumen calculadas en **5 queries**:
 | `Student::with('currentPlan')->get()` (2 queries) | Base para las dos métricas siguientes |
 | `Clase::where('active')->withCount('students')->get()` | Lista de cursos |
 
-- **Con plan activo**: alumnos cuyo `currentPlan` tiene `start_date <= hoy`, `end_date >= hoy` y `classes_remaining > 0` (o null para ilimitados). Coincide exactamente con la pestaña "Activos" de la pantalla de alumnos.
+- **Con plan activo**: alumnos cuyo `currentPlan` tiene `start_date <= hoy`, `end_date >= hoy` y `classes_remaining > 0` (o null para ilimitados).
 - **Planes este mes**: planes con `start_date` en el mes actual (excluye soft-deleted).
-- **Por vencer**: alumnos cuyo `currentPlan` tiene status `ok` o `exhausted` Y (`daysLeft <= notify_days_before` O `classes_remaining <= notify_classes_remaining`). Misma lógica que la pestaña "Por vencer" de alumnos.
-- La tarjeta "Ingresos mes" fue eliminada — los ingresos están en Reportes → Ganancias.
-- `$activeStudents` y `$expiringCount` se calculan desde la misma colección cargada, sin queries duplicadas.
+- **Por vencer**: alumnos cuyo `currentPlan` tiene status `ok` o `exhausted` Y (`daysLeft <= notify_days_before` O `classes_remaining <= notify_classes_remaining`).
+- Los cursos activos aparecen con badge "Hoy" si tienen clase el día actual — enlazan a `attendance.take`.
 
-### Asistencia
-- `$defaultPresent = false` — por defecto todos ausentes (tanto hoy como fechas pasadas)
-- `Attendance::updateOrCreate([clase_id, student_id, date], [present, plan_id])` para toggle individual
-- `Attendance::upsert($records, [clase_id, student_id, date], [present, plan_id, updated_at])` para guardado masivo
-- `addStudent`: inscribe al alumno con `syncWithoutDetaching` y marca presente
-- Al guardar/toggle: `resolvePlanId(studentId, date)` busca el plan activo en esa fecha; `adjustRemaining(planId, delta)` actualiza `classes_remaining` solo si cambió el estado de presencia
-- En `save()` masivo: los planes se cargan en una sola query (`whereIn student_id`) antes del upsert; los deltas se acumulan por `plan_id` y se aplican en batch
-- `$extraStudents` en `take.blade.php` incluye `planStatus` de cada alumno no inscrito (para mostrar badges en el modal de añadir)
-- `$dateInSchedule`: booleano que indica si el día de la fecha seleccionada está en el horario del curso; si es `false` se muestra banner rojo y se bloquean todos los controles de asistencia
+### Asistencia — flujo por alumno (nuevo)
+La pantalla principal de asistencia (`/attendance`) es ahora un **buscador de alumnos** por nombre o DNI. Al seleccionar un alumno se navega a `/attendance/student/{student}`:
+
+- Muestra los cursos del **día seleccionado** en dos secciones:
+  - **Cursos de hoy** — cursos en los que el alumno está inscrito y tienen clase ese día
+  - **Cursos de hoy no inscritos** — cursos con clase ese día en los que el alumno NO está inscrito; botón "+ Añadir" llama a `addStudent` (inscribe + marca presente)
+- Cada curso tiene toggle inmediato que llama a `POST /attendance/{clase}/toggle`
+- `todayIds` es una variable reactiva Alpine — al añadir un curso no inscrito se mueve automáticamente a la sección "Cursos de hoy" sin recargar
+- Selector de fecha: al cambiar fecha recarga la página con `?date=YYYY-MM-DD`
+
+### Asistencia — flujo por curso (conservado)
+Desde el dashboard, los cursos activos enlazan a `/attendance/{clase}/take`:
+- Muestra todos los alumnos inscritos en ese curso con toggles
+- El botón de retroceso lleva al **dashboard** (no a `/attendance`)
+- Búsqueda por nombre o DNI en la lista de alumnos
+- Modal "Añadir alumno" para inscribir alumnos no matriculados
+- `$dateInSchedule`: si el día no está en el horario del curso, muestra banner rojo y bloquea controles
 
 ### Plan de alumno
 - `class_quota` acepta `'8' | '12' | '16' | '24' | 'full1' | 'full2'` (string, no int)
@@ -328,10 +359,14 @@ Botones de filtro rápido:
 - **Marcar todos** / **Sólo salsa** / **Sólo bachata** / **Sólo lady** / **Todos menos lady**
 - Para planes `full1`/`full2`, al cambiar cuota se seleccionan todos los cursos automáticamente
 
-### Portal del alumno
-- Muestra asistencias del último plan registrado (`currentPlan`)
-- Si no hay plan o está vencido, muestra banner con mensaje de renovación
-- `StudentPortalController` filtra asistencias por `start_date`/`end_date` del plan
+### Portal del alumno (público)
+- **Sin login** — cualquier persona consulta ingresando un DNI en `/`
+- `StudentPortalController@lookup` busca alumno activo por DNI y retorna JSON:
+  - `found`: boolean
+  - `name`: nombre del alumno
+  - `plan`: null o `{ quota_label, status, status_label, remaining, start_date, end_date }`
+- La vista (`student/lookup.blade.php`) usa Alpine.js con `$watch('dni', ...)` — al borrar el campo se limpian automáticamente los resultados
+- El buscador permanece activo tras mostrar resultados para que otro alumno pueda consultar sin recargar
 
 ### Promociones
 - Se configuran en `/settings` (toggle activo/inactivo por cada tipo)
@@ -361,9 +396,29 @@ Seis claves: `price_8h` (120), `price_12h` (150), `price_16h` (170), `price_24h`
 - URL generada: `https://wa.me/{phone}?text={encoded_message}`
 
 ### Exportación de datos (Reportes)
-- **`StudentsExport`**: Excel con todos los alumnos ordenados por nombre + su `currentPlan`. Columnas: Nombre, DNI, Teléfono, Alumno activo, Tipo de plan, Estado del plan, Clases restantes, Fecha inicio, Fecha fin, Precio (S/), Promoción. Encabezado azul índigo. Ruta: `GET /reports/students/export`.
-- **`EarningsExport`**: Excel de ganancias filtrado por rango de fechas. Ruta: `GET /reports/earnings/export`. La opción de Ganancias está **oculta temporalmente** en `reports/index.blade.php` (comentario `{{-- Ganancias: oculto temporalmente --}}`).
+- **`StudentsExport`**: Excel con todos los alumnos ordenados por nombre + su `currentPlan`. Columnas: Nombre, DNI, Teléfono, Alumno activo, Tipo de plan, Estado del plan, Clases restantes, Fecha inicio, Fecha fin, Promoción. Encabezado azul índigo. Ruta: `GET /reports/students/export`.
+- **`EarningsExport`**: Excel de ganancias filtrado por rango de fechas. Ruta: `GET /reports/earnings/export`. La sección Ganancias en `reports/index.blade.php` se muestra solo si `Setting::get('show_earnings') == 1` (configurable desde `/settings`).
 - Todos los links de descarga llevan `data-turbo="false"`.
+
+### Importación de alumnos (`/import`)
+- `ImportController@show` → vista con instrucciones del formato CSV y formulario de carga
+- `ImportController@import` → procesa el archivo:
+  - Detecta automáticamente separador `,` o `;`
+  - Acepta fechas `DD/MM/YYYY` o `YYYY-MM-DD`
+  - Busca alumno existente por DNI primero, luego por nombre (case-insensitive)
+  - Si no existe → crea alumno + plan (si hay datos de plan)
+  - Si existe con plan activo (`ok` o `pending`) → omite el plan
+  - Si existe sin plan activo → crea el plan
+- Columnas CSV: `name` (req), `dni`, `phone`, `start_date`, `end_date`, `nombre_plan`, `price`, `clases_restantes`
+- Valores válidos para `nombre_plan`: `8 horas`, `12 horas`, `16 horas`, `24 horas`, `Full-1`, `Full-2`
+- Acceso desde `/settings` → sección "Importar datos" al final de la página
+
+### Validaciones en español (`StudentController`)
+Mensajes personalizados para `store` y `update`:
+- `dni.unique` → "El DNI ingresado ya está registrado."
+- `phone.required` → "El teléfono es obligatorio."
+- `phone.min` → "El teléfono debe tener al menos 8 caracteres."
+- `phone.max` → "El teléfono no puede tener más de 20 caracteres."
 
 ---
 
@@ -386,50 +441,52 @@ Seis claves: `price_8h` (120), `price_12h` (150), `price_16h` (170), `price_24h`
 app/
   Http/
     Controllers/
-      AttendanceController.php       ← lógica principal diaria
+      AttendanceController.php       ← index (buscador alumnos), takeByStudent, take, toggle, save, addStudent
       ClaseController.php            ← parseSchedule() para JSON de horario
       DashboardController.php        ← 5 queries; tarjetas: con plan activo, planes mes, por vencer
       EnrollmentController.php
+      ImportController.php           ← show() + import() para carga masiva CSV
       PinController.php              ← auth admin por PIN
       ReportController.php           ← studentsExport() + earningsExport()
-      SettingController.php          ← precios + promociones + notificaciones WA
-      StudentAuthController.php      ← auth alumno por DNI
-      StudentController.php
+      SettingController.php          ← precios + promociones + notificaciones WA + show_earnings
+      StudentController.php          ← validaciones en español para DNI y teléfono
       StudentPlanController.php      ← fechas default, promociones activas, cursos del plan, nextPlan
-      StudentPortalController.php    ← dashboard y detalle por curso del alumno
+      StudentPortalController.php    ← publicSearch() + lookup() (portal público sin auth)
     Middleware/
       CheckPin.php                   ← alias check.pin
-      CheckStudentAuth.php           ← alias check.student
+      CheckStudentAuth.php           ← alias check.student (en desuso)
   Models/
     Student.php · Clase.php · Attendance.php · StudentPlan.php · Setting.php
   Exports/
     EarningsExport.php               ← Excel ganancias (incluye promoción y fecha registro)
-    StudentsExport.php               ← Excel alumnos + plan actual (encabezado índigo)
+    StudentsExport.php               ← Excel alumnos + plan actual (sin precio; encabezado índigo)
 
 resources/
   js/app.js                          ← importa Turbo + Alpine; Turbo.config.drive.progressBarDelay = 0
   css/app.css                        ← incluye .turbo-progress-bar con gradiente violeta
   views/
     layouts/
-      app.blade.php                  ← shell admin; csrf-token meta; @stack('head'); nav inferior
-      student.blade.php              ← shell portal alumno; csrf-token meta; @stack('head')
-    auth/login.blade.php             ← login PIN admin
+      app.blade.php                  ← shell admin; csrf-token meta; @stack('head'); nav inferior; splash con readyState fix
+      student.blade.php              ← shell portal alumno; sin logout; csrf-token meta; @stack('head')
+    auth/login.blade.php             ← login PIN admin; link "Acceso alumnos" → route('student.search')
     student/
-      login.blade.php                ← login DNI alumno
-      dashboard.blade.php            ← asistencias del plan actual
-      clase.blade.php                ← detalle día a día por curso
-    dashboard/index.blade.php        ← 3 tarjetas: con plan activo · planes mes · por vencer
+      lookup.blade.php               ← búsqueda pública por DNI (Alpine.js + fetch); $watch limpia resultados al borrar
+    dashboard/index.blade.php        ← 3 tarjetas + lista de cursos con link a attendance.take
     attendance/
-      index.blade.php                ← lista de clases para tomar asistencia
-      take.blade.php                 ← pantalla principal (Alpine.js, toggle, modal); turbo-cache-control: no-cache
+      index.blade.php                ← buscador de alumnos por nombre o DNI (sticky); Alpine client-side filter
+      take.blade.php                 ← asistencia por curso (Alpine.js, toggle, modal); back → dashboard
+      take-student.blade.php         ← asistencia por alumno; cursos del día + no inscritos; imágenes de cursos
     students/
       index.blade.php                ← tabs Alpine: Todos · Activos · Por vencer · Vencido; botones WhatsApp
       create.blade.php · edit.blade.php · plans.blade.php
     clases/
       index.blade.php · create.blade.php · edit.blade.php · enroll.blade.php
-    settings/edit.blade.php          ← precios + promociones + notificaciones WhatsApp + cambio de PIN
+      (create y edit usan IIFE con window.Alpine check para scheduleSelector)
+    import/
+      index.blade.php                ← instrucciones CSV + formulario de carga
+    settings/edit.blade.php          ← precios + promociones + reportes (show_earnings) + notificaciones WA + PIN + importar
     reports/
-      index.blade.php                ← botón exportar alumnos (verde); ganancias oculto temporalmente
+      index.blade.php                ← ganancias condicional (show_earnings); botón exportar alumnos
       clase.blade.php · clase-student.blade.php
       student.blade.php · earnings.blade.php
 

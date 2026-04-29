@@ -12,24 +12,39 @@ class AttendanceController extends Controller
 {
     public function index()
     {
+        $students = \App\Models\Student::where('active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'dni']);
+
+        return view('attendance.index', compact('students'));
+    }
+
+    public function takeByStudent(Request $request, \App\Models\Student $student)
+    {
+        $date = $request->date ? \Carbon\Carbon::parse($request->date) : today();
+
         $dayMap = [0 => 'dom', 1 => 'lun', 2 => 'mar', 3 => 'mie', 4 => 'jue', 5 => 'vie', 6 => 'sab'];
-        $todayKey = $dayMap[now()->dayOfWeek];
+        $dayKey = $dayMap[$date->dayOfWeek];
 
-        $clases = Clase::where('active', true)->withCount('students')->get();
+        $clases      = $student->clases()->where('active', true)->get();
+        $enrolledIds = $clases->pluck('id');
 
-        $todayClases = $clases
-            ->filter(fn($c) => is_array($c->schedule) && isset($c->schedule[$todayKey]))
-            ->sortBy(fn($c) => is_array($c->schedule[$todayKey]) ? $c->schedule[$todayKey]['start'] : $c->schedule[$todayKey])
+        $existing = Attendance::where('student_id', $student->id)
+            ->where('date', $date->toDateString())
+            ->whereIn('clase_id', $enrolledIds)
+            ->pluck('present', 'clase_id');
+
+        $unenrolledTodayClases = Clase::where('active', true)
+            ->whereNotIn('id', $enrolledIds)
+            ->get()
+            ->filter(fn($c) => is_array($c->schedule) && isset($c->schedule[$dayKey]))
             ->values();
 
-        $otherClases = $clases
-            ->filter(fn($c) => !is_array($c->schedule) || !isset($c->schedule[$todayKey]))
-            ->sortBy('name')
-            ->values();
+        $planStatus = $student->currentPlan?->status() ?? 'no_plan';
 
-        $clases = $todayClases->merge($otherClases);
-
-        return view('attendance.index', compact('clases', 'todayKey'));
+        return view('attendance.take-student', compact(
+            'student', 'clases', 'date', 'existing', 'planStatus', 'dayKey', 'unenrolledTodayClases'
+        ));
     }
 
     public function take(Request $request, Clase $clase)

@@ -5,9 +5,65 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\Clase;
 use App\Models\Student;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class StudentPortalController extends Controller
 {
+    private const QUOTA_LABELS = [
+        '8'     => '8 horas',
+        '12'    => '12 horas',
+        '16'    => '16 horas',
+        '24'    => '24 horas',
+        'full1' => 'Full-1 (ilimitado)',
+        'full2' => 'Full-2 (ilimitado)',
+    ];
+
+    private const STATUS_LABELS = [
+        'ok'        => 'Activo',
+        'exhausted' => 'Clases agotadas',
+        'expired'   => 'Vencido',
+        'pending'   => 'Pendiente',
+    ];
+
+    public function publicSearch()
+    {
+        return view('student.lookup');
+    }
+
+    public function lookup(Request $request)
+    {
+        $dni = trim($request->input('dni', ''));
+
+        if ($dni === '') {
+            return response()->json(['found' => false, 'message' => 'Ingresa un DNI para buscar.']);
+        }
+
+        $student = Student::where('dni', $dni)
+            ->where('active', true)
+            ->with('currentPlan')
+            ->first();
+
+        if (!$student) {
+            return response()->json(['found' => false, 'message' => 'No se encontró ningún alumno con ese DNI.']);
+        }
+
+        $plan = $student->currentPlan;
+
+        return response()->json([
+            'found' => true,
+            'name'  => $student->name,
+            'plan'  => $plan ? [
+                'quota_label'  => self::QUOTA_LABELS[$plan->class_quota] ?? $plan->class_quota,
+                'status'       => $plan->status(),
+                'status_label' => self::STATUS_LABELS[$plan->status()] ?? '—',
+                'remaining'    => $plan->classesRemaining(),
+                'start_date'   => Carbon::parse($plan->start_date)->format('d/m/Y'),
+                'end_date'     => Carbon::parse($plan->end_date)->format('d/m/Y'),
+            ] : null,
+        ]);
+    }
+
     private function student(): Student
     {
         return Student::with('currentPlan')->findOrFail(session('student_id'));

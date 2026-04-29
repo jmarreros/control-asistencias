@@ -76,6 +76,11 @@ class StudentController extends Controller
             'dni'   => 'nullable|string|max:20|unique:students,dni',
             'phone' => 'required|string|min:8|max:20',
             'notes' => 'nullable|string',
+        ], [
+            'dni.unique'   => 'El DNI ingresado ya está registrado.',
+            'phone.required' => 'El teléfono es obligatorio.',
+            'phone.min'      => 'El teléfono debe tener al menos 8 caracteres.',
+            'phone.max'      => 'El teléfono no puede tener más de 20 caracteres.',
         ]);
 
         $student = Student::create($data);
@@ -99,6 +104,11 @@ class StudentController extends Controller
             'phone'  => 'required|string|min:8|max:20',
             'notes'  => 'nullable|string',
             'active' => 'boolean',
+        ], [
+            'dni.unique'     => 'El DNI ingresado ya está registrado.',
+            'phone.required' => 'El teléfono es obligatorio.',
+            'phone.min'      => 'El teléfono debe tener al menos 8 caracteres.',
+            'phone.max'      => 'El teléfono no puede tener más de 20 caracteres.',
         ]);
 
         $student->update($data);
