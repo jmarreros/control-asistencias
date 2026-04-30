@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccessLog;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 
 class PinController extends Controller
@@ -19,20 +21,26 @@ class PinController extends Controller
     {
         $request->validate(['pin' => 'required']);
 
-        $currentPin = \App\Models\Setting::get('app_pin') ?? env('APP_PIN', '1234');
+        $currentPin = Setting::get('app_pin') ?? env('APP_PIN', '1234');
 
         if ($request->pin === $currentPin) {
             session()->forget('student_id');
             session(['pin_authenticated' => true]);
+            AccessLog::record('admin', 'login', 'Acceso correcto');
+
             return redirect()->route('dashboard');
         }
+
+        AccessLog::record('admin', 'login_failed', 'PIN incorrecto');
 
         return back()->withErrors(['pin' => 'PIN incorrecto.']);
     }
 
     public function logout()
     {
+        AccessLog::record('admin', 'logout', 'Sesión cerrada');
         session()->forget('pin_authenticated');
+
         return redirect()->route('login');
     }
 }

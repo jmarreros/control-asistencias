@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccessLog;
 use App\Models\Attendance;
 use App\Models\Clase;
 use App\Models\Student;
@@ -11,19 +12,19 @@ use Illuminate\Http\Request;
 class StudentPortalController extends Controller
 {
     private const QUOTA_LABELS = [
-        '8'     => '8 horas',
-        '12'    => '12 horas',
-        '16'    => '16 horas',
-        '24'    => '24 horas',
+        '8' => '8 horas',
+        '12' => '12 horas',
+        '16' => '16 horas',
+        '24' => '24 horas',
         'full1' => 'Full-1 (ilimitado)',
         'full2' => 'Full-2 (ilimitado)',
     ];
 
     private const STATUS_LABELS = [
-        'ok'        => 'Activo',
+        'ok' => 'Activo',
         'exhausted' => 'Clases agotadas',
-        'expired'   => 'Vencido',
-        'pending'   => 'Pendiente',
+        'expired' => 'Vencido',
+        'pending' => 'Pendiente',
     ];
 
     public function publicSearch()
@@ -44,22 +45,26 @@ class StudentPortalController extends Controller
             ->with('currentPlan')
             ->first();
 
-        if (!$student) {
+        if (! $student) {
+            AccessLog::record('portal', 'dni_lookup', "DNI {$dni} — no encontrado");
+
             return response()->json(['found' => false, 'message' => 'No se encontró ningún alumno con ese DNI.']);
         }
+
+        AccessLog::record('portal', 'dni_lookup', "DNI {$dni} — {$student->name}");
 
         $plan = $student->currentPlan;
 
         return response()->json([
             'found' => true,
-            'name'  => $student->name,
-            'plan'  => $plan ? [
-                'quota_label'  => self::QUOTA_LABELS[$plan->class_quota] ?? $plan->class_quota,
-                'status'       => $plan->status(),
+            'name' => $student->name,
+            'plan' => $plan ? [
+                'quota_label' => self::QUOTA_LABELS[$plan->class_quota] ?? $plan->class_quota,
+                'status' => $plan->status(),
                 'status_label' => self::STATUS_LABELS[$plan->status()] ?? '—',
-                'remaining'    => $plan->classesRemaining(),
-                'start_date'   => Carbon::parse($plan->start_date)->format('d/m/Y'),
-                'end_date'     => Carbon::parse($plan->end_date)->format('d/m/Y'),
+                'remaining' => $plan->classesRemaining(),
+                'start_date' => Carbon::parse($plan->start_date)->format('d/m/Y'),
+                'end_date' => Carbon::parse($plan->end_date)->format('d/m/Y'),
             ] : null,
         ]);
     }
@@ -71,12 +76,12 @@ class StudentPortalController extends Controller
 
     public function index()
     {
-        $student    = $this->student();
-        $plan       = $student->currentPlan;
+        $student = $this->student();
+        $plan = $student->currentPlan;
         $planStatus = $plan?->status() ?? 'no_plan';
 
         $from = $plan?->start_date;
-        $to   = $plan?->end_date;
+        $to = $plan?->end_date;
 
         $clases = $student->clases()->orderBy('name')->get();
 
@@ -89,14 +94,14 @@ class StudentPortalController extends Controller
             }
 
             $attendances = $query->get();
-            $total       = $attendances->count();
-            $present     = $attendances->where('present', true)->count();
+            $total = $attendances->count();
+            $present = $attendances->where('present', true)->count();
 
             return [
-                'clase'   => $clase,
-                'total'   => $total,
+                'clase' => $clase,
+                'total' => $total,
                 'present' => $present,
-                'rate'    => $total > 0 ? round($present / $total * 100) : null,
+                'rate' => $total > 0 ? round($present / $total * 100) : null,
             ];
         });
 
@@ -107,13 +112,13 @@ class StudentPortalController extends Controller
     {
         $student = $this->student();
 
-        if (!$student->clases()->where('clases.id', $clase->id)->exists()) {
+        if (! $student->clases()->where('clases.id', $clase->id)->exists()) {
             abort(403);
         }
 
         $plan = $student->currentPlan;
         $from = $plan?->start_date;
-        $to   = $plan?->end_date;
+        $to = $plan?->end_date;
 
         $query = Attendance::where('clase_id', $clase->id)
             ->where('student_id', $student->id);
@@ -123,8 +128,8 @@ class StudentPortalController extends Controller
         }
 
         $attendances = $query->orderBy('date', 'desc')->get();
-        $present     = $attendances->where('present', true)->count();
-        $total       = $attendances->count();
+        $present = $attendances->where('present', true)->count();
+        $total = $attendances->count();
 
         return view('student.clase', compact('student', 'plan', 'clase', 'attendances', 'present', 'total'));
     }

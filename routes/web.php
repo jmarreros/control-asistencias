@@ -1,16 +1,16 @@
 <?php
 
+use App\Http\Controllers\AccessLogController;
 use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\ImportController;
-use App\Http\Controllers\SettingController;
-use App\Http\Controllers\StudentPlanController;
 use App\Http\Controllers\ClaseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrollmentController;
+use App\Http\Controllers\ImportController;
 use App\Http\Controllers\PinController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\StudentAuthController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentPlanController;
 use App\Http\Controllers\StudentPortalController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,7 +24,7 @@ Route::post('/login', [PinController::class, 'authenticate'])->name('login.post'
 Route::post('/logout', [PinController::class, 'logout'])->name('logout');
 
 // --- Rutas admin protegidas por PIN ---
-Route::middleware('check.pin')->group(function () {
+Route::middleware(['check.pin', 'log.access'])->group(function () {
 
     Route::get('/admin', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -60,6 +60,10 @@ Route::middleware('check.pin')->group(function () {
     // Importación
     Route::get('import', [ImportController::class, 'show'])->name('import.show');
     Route::post('import', [ImportController::class, 'import'])->name('import.process');
+
+    // Logs de acceso
+    Route::get('logs', [AccessLogController::class, 'index'])->name('logs.index');
+    Route::delete('logs', [AccessLogController::class, 'destroy'])->name('logs.destroy');
 
     // Reportes
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');

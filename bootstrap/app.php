@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Middleware\CheckPin;
+use App\Http\Middleware\CheckStudentAuth;
+use App\Http\Middleware\LogAdminAccess;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,8 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'check.pin'     => \App\Http\Middleware\CheckPin::class,
-            'check.student' => \App\Http\Middleware\CheckStudentAuth::class,
+            'check.pin' => CheckPin::class,
+            'check.student' => CheckStudentAuth::class,
+            'log.access' => LogAdminAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
