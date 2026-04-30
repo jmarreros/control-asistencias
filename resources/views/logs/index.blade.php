@@ -40,7 +40,8 @@
 
         @if($total > 0)
         <button @click="showDelete = true"
-                class="ml-auto px-3 py-1.5 rounded-lg text-sm font-medium bg-red-600/80 text-white flex items-center gap-1.5">
+                class="ml-auto px-3 py-1.5 rounded-lg text-sm font-medium text-white flex items-center gap-1.5"
+                style="background-color:#dc2626;">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -54,12 +55,12 @@
     @forelse($logs as $log)
     @php
         $colors = match($log->action) {
-            'login'       => ['dot' => 'bg-emerald-400', 'badge' => 'bg-emerald-900/50 text-emerald-300'],
-            'logout'      => ['dot' => 'bg-slate-400',   'badge' => 'bg-slate-800/50 text-slate-300'],
-            'login_failed'=> ['dot' => 'bg-red-400',     'badge' => 'bg-red-900/50 text-red-300'],
-            'page_visit'  => ['dot' => 'bg-indigo-400',  'badge' => 'bg-indigo-900/50 text-indigo-300'],
-            'dni_lookup'  => ['dot' => 'bg-amber-400',   'badge' => 'bg-amber-900/50 text-amber-300'],
-            default       => ['dot' => 'bg-white/40',    'badge' => 'bg-white/10 text-white/60'],
+            'login'        => ['dot' => '#34d399', 'badge_bg' => 'rgba(6,78,59,0.5)',   'badge_text' => '#6ee7b7'],
+            'logout'       => ['dot' => '#94a3b8', 'badge_bg' => 'rgba(30,41,59,0.5)',  'badge_text' => '#cbd5e1'],
+            'login_failed' => ['dot' => '#f87171', 'badge_bg' => 'rgba(127,29,29,0.5)', 'badge_text' => '#fca5a5'],
+            'page_visit'   => ['dot' => '#818cf8', 'badge_bg' => 'rgba(49,46,129,0.5)', 'badge_text' => '#a5b4fc'],
+            'dni_lookup'   => ['dot' => '#fbbf24', 'badge_bg' => 'rgba(120,53,15,0.5)', 'badge_text' => '#fde68a'],
+            default        => ['dot' => 'rgba(255,255,255,0.4)', 'badge_bg' => 'rgba(255,255,255,0.1)', 'badge_text' => 'rgba(255,255,255,0.6)'],
         };
         $labels = [
             'login'        => 'Login',
@@ -70,10 +71,11 @@
         ];
     @endphp
     <div class="flex items-start gap-3 py-3 border-b border-white/10">
-        <div class="mt-1.5 w-2 h-2 rounded-full shrink-0 {{ $colors['dot'] }}"></div>
+        <div class="mt-1.5 w-2 h-2 rounded-full shrink-0" style="background-color:{{ $colors['dot'] }};"></div>
         <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-xs px-2 py-0.5 rounded-full font-medium {{ $colors['badge'] }}">
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                      style="background-color:{{ $colors['badge_bg'] }}; color:{{ $colors['badge_text'] }};">
                     {{ $labels[$log->action] ?? $log->action }}
                 </span>
                 <span class="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/50">
