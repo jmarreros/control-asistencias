@@ -151,8 +151,11 @@
     </div>
 
     {{-- Footer --}}
-    <div class="px-4 pb-8 text-center">
+    <div class="px-4 pb-8 text-center space-y-2">
         <p class="text-white/20 text-xs">Salsa Latin Motion · Control de Asistencias</p>
+        <a href="{{ route('login') }}" class="inline-block text-white/30 text-xs hover:text-white/60 transition-colors">
+            Acceso administración
+        </a>
     </div>
 
 </div>
