@@ -1,4 +1,6 @@
 /.phpunit.cache
+/.mcp.json
+/boost.json
 /database/database.sqlite
 /.claude
 /node_modules

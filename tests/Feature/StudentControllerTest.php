@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Student;
+use App\Models\StudentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -58,8 +59,8 @@ class StudentControllerTest extends TestCase
     public function test_store_creates_student_with_valid_data(): void
     {
         $payload = [
-            'name'  => 'Juan Pérez',
-            'dni'   => '12345678',
+            'name' => 'Juan Pérez',
+            'dni' => '12345678',
             'phone' => '987654321',
             'notes' => 'Alumno nuevo',
         ];
@@ -74,7 +75,7 @@ class StudentControllerTest extends TestCase
     public function test_store_redirects_to_plans_after_creation(): void
     {
         $this->actingAsAdmin()
-            ->post(route('students.store'), ['name' => 'María López'])
+            ->post(route('students.store'), ['name' => 'María López', 'phone' => '987000001'])
             ->assertRedirectToRoute('students.plans.index', Student::first());
     }
 
@@ -99,7 +100,7 @@ class StudentControllerTest extends TestCase
     public function test_store_allows_null_dni(): void
     {
         $this->actingAsAdmin()
-            ->post(route('students.store'), ['name' => 'Sin DNI', 'dni' => ''])
+            ->post(route('students.store'), ['name' => 'Sin DNI', 'dni' => '', 'phone' => '987000001'])
             ->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('students', ['name' => 'Sin DNI', 'dni' => null]);
@@ -114,7 +115,7 @@ class StudentControllerTest extends TestCase
 
     public function test_store_sets_active_true_by_default(): void
     {
-        $this->actingAsAdmin()->post(route('students.store'), ['name' => 'Activo']);
+        $this->actingAsAdmin()->post(route('students.store'), ['name' => 'Activo', 'phone' => '987000001']);
 
         $this->assertDatabaseHas('students', ['name' => 'Activo', 'active' => true]);
     }
@@ -131,7 +132,7 @@ class StudentControllerTest extends TestCase
             ->get(route('students.edit', $student))
             ->assertOk()
             ->assertViewIs('students.edit')
-            ->assertViewHas('student', fn($s) => $s->id === $student->id);
+            ->assertViewHas('student', fn ($s) => $s->id === $student->id);
     }
 
     // -------------------------------------------------------------------------
@@ -143,7 +144,7 @@ class StudentControllerTest extends TestCase
         $student = Student::factory()->create(['name' => 'Nombre Viejo']);
 
         $this->actingAsAdmin()
-            ->put(route('students.update', $student), ['name' => 'Nombre Nuevo', 'active' => true])
+            ->put(route('students.update', $student), ['name' => 'Nombre Nuevo', 'active' => true, 'phone' => '987000001'])
             ->assertRedirect(route('students.index'))
             ->assertSessionHas('success');
 
@@ -156,8 +157,9 @@ class StudentControllerTest extends TestCase
 
         $this->actingAsAdmin()
             ->put(route('students.update', $student), [
-                'name'   => $student->name,
-                'dni'    => '22222222',
+                'name' => $student->name,
+                'dni' => '22222222',
+                'phone' => '987000001',
                 'active' => true,
             ])
             ->assertSessionHasNoErrors();
@@ -170,8 +172,8 @@ class StudentControllerTest extends TestCase
 
         $this->actingAsAdmin()
             ->put(route('students.update', $other), [
-                'name'   => $other->name,
-                'dni'    => '33333333',
+                'name' => $other->name,
+                'dni' => '33333333',
                 'active' => true,
             ])
             ->assertSessionHasErrors('dni');
@@ -184,7 +186,7 @@ class StudentControllerTest extends TestCase
     public function test_index_sets_plan_status_ok_for_active_plan(): void
     {
         $student = Student::factory()->create();
-        \App\Models\StudentPlan::factory()->active()->create(['student_id' => $student->id]);
+        StudentPlan::factory()->active()->create(['student_id' => $student->id]);
 
         $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
 
@@ -195,7 +197,7 @@ class StudentControllerTest extends TestCase
     public function test_index_sets_plan_status_expired_for_expired_plan(): void
     {
         $student = Student::factory()->create();
-        \App\Models\StudentPlan::factory()->expired()->create(['student_id' => $student->id]);
+        StudentPlan::factory()->expired()->create(['student_id' => $student->id]);
 
         $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
 
@@ -218,10 +220,10 @@ class StudentControllerTest extends TestCase
     {
         // notify_days_before default = 3; plan vence en 2 días → debe marcar isExpiring
         $student = Student::factory()->create(['phone' => '987000001']);
-        \App\Models\StudentPlan::factory()->create([
-            'student_id'  => $student->id,
-            'start_date'  => now()->subDays(10)->toDateString(),
-            'end_date'    => now()->addDays(2)->toDateString(),
+        StudentPlan::factory()->create([
+            'student_id' => $student->id,
+            'start_date' => now()->subDays(10)->toDateString(),
+            'end_date' => now()->addDays(2)->toDateString(),
             'class_quota' => '16',  // cuota alta → no exhausted
         ]);
 
@@ -234,7 +236,7 @@ class StudentControllerTest extends TestCase
     public function test_index_does_not_flag_expiring_when_end_date_far(): void
     {
         $student = Student::factory()->create();
-        \App\Models\StudentPlan::factory()->active()->create(['student_id' => $student->id]);
+        StudentPlan::factory()->active()->create(['student_id' => $student->id]);
         // active() pone end_date en 25 días → muy lejos del umbral de 3
 
         $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
@@ -246,10 +248,10 @@ class StudentControllerTest extends TestCase
     public function test_index_generates_whatsapp_url_for_expiring_student_with_phone(): void
     {
         $student = Student::factory()->create(['name' => 'Ana García', 'phone' => '987654321']);
-        \App\Models\StudentPlan::factory()->create([
-            'student_id'  => $student->id,
-            'start_date'  => now()->subDays(10)->toDateString(),
-            'end_date'    => now()->addDays(1)->toDateString(),
+        StudentPlan::factory()->create([
+            'student_id' => $student->id,
+            'start_date' => now()->subDays(10)->toDateString(),
+            'end_date' => now()->addDays(1)->toDateString(),
             'class_quota' => '16',
         ]);
 
@@ -264,10 +266,10 @@ class StudentControllerTest extends TestCase
     public function test_index_no_whatsapp_url_when_expiring_student_has_no_phone(): void
     {
         $student = Student::factory()->create(['phone' => null]);
-        \App\Models\StudentPlan::factory()->create([
-            'student_id'  => $student->id,
-            'start_date'  => now()->subDays(10)->toDateString(),
-            'end_date'    => now()->addDays(1)->toDateString(),
+        StudentPlan::factory()->create([
+            'student_id' => $student->id,
+            'start_date' => now()->subDays(10)->toDateString(),
+            'end_date' => now()->addDays(1)->toDateString(),
             'class_quota' => '16',
         ]);
 
@@ -281,7 +283,7 @@ class StudentControllerTest extends TestCase
     public function test_index_generates_expired_whatsapp_url_for_expired_student(): void
     {
         $student = Student::factory()->create(['phone' => '912345678']);
-        \App\Models\StudentPlan::factory()->expired()->create(['student_id' => $student->id]);
+        StudentPlan::factory()->expired()->create(['student_id' => $student->id]);
 
         $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
 
@@ -293,7 +295,7 @@ class StudentControllerTest extends TestCase
     public function test_index_no_expired_whatsapp_url_when_expired_student_has_no_phone(): void
     {
         $student = Student::factory()->create(['phone' => null]);
-        \App\Models\StudentPlan::factory()->expired()->create(['student_id' => $student->id]);
+        StudentPlan::factory()->expired()->create(['student_id' => $student->id]);
 
         $response = $this->actingAsAdmin()->get(route('students.index'))->assertOk();
 

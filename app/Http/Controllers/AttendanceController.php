@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\Clase;
+use App\Models\Student;
 use App\Models\StudentPlan;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -12,21 +14,21 @@ class AttendanceController extends Controller
 {
     public function index()
     {
-        $students = \App\Models\Student::where('active', true)
+        $students = Student::where('active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'dni']);
 
         return view('attendance.index', compact('students'));
     }
 
-    public function takeByStudent(Request $request, \App\Models\Student $student)
+    public function takeByStudent(Request $request, Student $student)
     {
-        $date = $request->date ? \Carbon\Carbon::parse($request->date) : today();
+        $date = $request->date ? Carbon::parse($request->date) : today();
 
         $dayMap = [0 => 'dom', 1 => 'lun', 2 => 'mar', 3 => 'mie', 4 => 'jue', 5 => 'vie', 6 => 'sab'];
         $dayKey = $dayMap[$date->dayOfWeek];
 
-        $clases      = $student->clases()->where('active', true)->get();
+        $clases = $student->clases()->where('active', true)->get();
         $enrolledIds = $clases->pluck('id');
 
         $existing = Attendance::where('student_id', $student->id)
@@ -37,7 +39,7 @@ class AttendanceController extends Controller
         $unenrolledTodayClases = Clase::where('active', true)
             ->whereNotIn('id', $enrolledIds)
             ->get()
-            ->filter(fn($c) => is_array($c->schedule) && isset($c->schedule[$dayKey]))
+            ->filter(fn ($c) => is_array($c->schedule) && isset($c->schedule[$dayKey]))
             ->values();
 
         $planStatus = $student->currentPlan?->status() ?? 'no_plan';
@@ -49,7 +51,7 @@ class AttendanceController extends Controller
 
     public function take(Request $request, Clase $clase)
     {
-        $date = $request->date ? \Carbon\Carbon::parse($request->date) : today();
+        $date = $request->date ? Carbon::parse($request->date) : today();
 
         $dayMap = [0 => 'dom', 1 => 'lun', 2 => 'mar', 3 => 'mie', 4 => 'jue', 5 => 'vie', 6 => 'sab'];
         $dayKey = $dayMap[$date->dayOfWeek];
@@ -64,19 +66,19 @@ class AttendanceController extends Controller
         $defaultPresent = false;
 
         $planStatuses = $students->pluck('currentPlan', 'id')->map(
-            fn($plan) => $plan?->status() ?? 'no_plan'
+            fn ($plan) => $plan?->status() ?? 'no_plan'
         );
 
         // Todos los alumnos activos no inscritos en este curso (para búsqueda)
         $enrolledIds = $students->pluck('id');
-        $extraStudents = \App\Models\Student::where('active', true)
+        $extraStudents = Student::where('active', true)
             ->with('currentPlan')
             ->whereNotIn('id', $enrolledIds)
             ->orderBy('name')
             ->get();
 
         $extraPlanStatuses = $extraStudents->pluck('currentPlan', 'id')->map(
-            fn($plan) => $plan?->status() ?? 'no_plan'
+            fn ($plan) => $plan?->status() ?? 'no_plan'
         );
 
         return view('attendance.take', compact(
@@ -88,12 +90,14 @@ class AttendanceController extends Controller
     /** Suma `$delta` a classes_remaining (negativo = descuenta). Nunca baja de 0. */
     private function adjustRemaining(int $planId, int $delta): void
     {
-        if ($delta === 0) return;
+        if ($delta === 0) {
+            return;
+        }
 
         StudentPlan::where('id', $planId)
             ->whereNotNull('classes_remaining')
             ->update([
-                'classes_remaining' => DB::raw('MAX(0, classes_remaining + ' . $delta . ')'),
+                'classes_remaining' => DB::raw('MAX(0, classes_remaining + '.intval($delta).')'),
             ]);
     }
 
@@ -111,19 +115,19 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'student_id' => 'required|exists:students,id',
-            'date'       => 'required|date',
+            'date' => 'required|date',
         ]);
 
         // Inscribir al alumno si no lo está
         $clase->students()->syncWithoutDetaching([
-            $request->student_id => ['enrolled_at' => today()->toDateString()]
+            $request->student_id => ['enrolled_at' => today()->toDateString()],
         ]);
 
         // Guardar asistencia como presente
-        $date   = \Carbon\Carbon::parse($request->date)->toDateString();
+        $date = Carbon::parse($request->date)->toDateString();
         $planId = $this->resolvePlanId($request->student_id, $date);
 
-        $existing   = Attendance::where('clase_id', $clase->id)
+        $existing = Attendance::where('clase_id', $clase->id)
             ->where('student_id', $request->student_id)
             ->where('date', $date)
             ->first();
@@ -132,10 +136,10 @@ class AttendanceController extends Controller
 
         Attendance::updateOrCreate(
             ['clase_id' => $clase->id, 'student_id' => $request->student_id, 'date' => $date],
-            ['present'  => true, 'plan_id' => $planId]
+            ['present' => true, 'plan_id' => $planId]
         );
 
-        if ($planId && !$wasPresent) {
+        if ($planId && ! $wasPresent) {
             $this->adjustRemaining($planId, -1);
         }
 
@@ -145,25 +149,30 @@ class AttendanceController extends Controller
     public function toggle(Request $request, Clase $clase)
     {
         $request->validate([
-            'student_id' => 'required|integer',
-            'date'       => 'required|date',
-            'present'    => 'required|boolean',
+            'student_id' => 'required|exists:students,id',
+            'date' => 'required|date',
+            'present' => 'required|boolean',
         ]);
 
-        $date    = \Carbon\Carbon::parse($request->date)->toDateString();
-        $planId  = $this->resolvePlanId($request->student_id, $date);
+        abort_unless(
+            $clase->students()->where('students.id', $request->student_id)->exists(),
+            403
+        );
 
-        $existing    = Attendance::where('clase_id', $clase->id)
+        $date = Carbon::parse($request->date)->toDateString();
+        $planId = $this->resolvePlanId($request->student_id, $date);
+
+        $existing = Attendance::where('clase_id', $clase->id)
             ->where('student_id', $request->student_id)
             ->where('date', $date)
             ->first();
 
         $wasPresent = $existing?->present ?? false;
-        $isPresent  = (bool) $request->present;
+        $isPresent = (bool) $request->present;
 
         Attendance::updateOrCreate(
             ['clase_id' => $clase->id, 'student_id' => $request->student_id, 'date' => $date],
-            ['present'  => $isPresent, 'plan_id' => $planId]
+            ['present' => $isPresent, 'plan_id' => $planId]
         );
 
         // Ajustar clases restantes solo si cambió el estado
@@ -180,9 +189,9 @@ class AttendanceController extends Controller
             'date' => 'required|date',
         ]);
 
-        $students   = $clase->students()->pluck('students.id');
+        $students = $clase->students()->pluck('students.id');
         $presentMap = $request->input('present', []);
-        $date       = $request->date;
+        $date = $request->date;
 
         // Cargar asistencias previas para detectar cambios
         $existing = Attendance::where('clase_id', $clase->id)
@@ -198,12 +207,12 @@ class AttendanceController extends Controller
             ->orderByDesc('start_date')
             ->pluck('id', 'student_id');
 
-        $records = $students->map(fn($studentId) => [
-            'clase_id'   => $clase->id,
+        $records = $students->map(fn ($studentId) => [
+            'clase_id' => $clase->id,
             'student_id' => $studentId,
-            'plan_id'    => $plansByStudent[$studentId] ?? null,
-            'date'       => $date,
-            'present'    => isset($presentMap[$studentId]) && $presentMap[$studentId] === '1',
+            'plan_id' => $plansByStudent[$studentId] ?? null,
+            'date' => $date,
+            'present' => isset($presentMap[$studentId]) && $presentMap[$studentId] === '1',
             'created_at' => now(),
             'updated_at' => now(),
         ])->values()->all();
@@ -214,12 +223,16 @@ class AttendanceController extends Controller
         $planDeltas = [];
         foreach ($students as $studentId) {
             $wasPresent = (bool) ($existing[$studentId] ?? false);
-            $isPresent  = isset($presentMap[$studentId]) && $presentMap[$studentId] === '1';
+            $isPresent = isset($presentMap[$studentId]) && $presentMap[$studentId] === '1';
 
-            if ($wasPresent === $isPresent) continue;
+            if ($wasPresent === $isPresent) {
+                continue;
+            }
 
             $planId = $plansByStudent[$studentId] ?? null;
-            if (!$planId) continue;
+            if (! $planId) {
+                continue;
+            }
 
             $planDeltas[$planId] = ($planDeltas[$planId] ?? 0) + ($isPresent ? -1 : +1);
         }

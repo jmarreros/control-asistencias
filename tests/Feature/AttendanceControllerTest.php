@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Attendance;
 use App\Models\Clase;
 use App\Models\Student;
-use App\Models\StudentPlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -22,16 +21,16 @@ class AttendanceControllerTest extends TestCase
     // index
     // -------------------------------------------------------------------------
 
-    public function test_index_shows_only_active_courses(): void
+    public function test_index_shows_only_active_students(): void
     {
-        Clase::factory()->create(['active' => true]);
-        Clase::factory()->create(['active' => false]);
+        $active = Student::factory()->create(['active' => true, 'name' => 'Activo']);
+        $inactive = Student::factory()->create(['active' => false, 'name' => 'Inactivo']);
 
         $response = $this->actingAsAdmin()->get(route('attendance.index'))->assertOk();
 
-        $clases = $response->viewData('clases');
-        $this->assertEquals(1, $clases->count());
-        $this->assertTrue($clases->first()->active);
+        $students = $response->viewData('students');
+        $this->assertEquals(1, $students->count());
+        $this->assertEquals($active->id, $students->first()->id);
     }
 
     // -------------------------------------------------------------------------
@@ -40,7 +39,7 @@ class AttendanceControllerTest extends TestCase
 
     public function test_take_shows_enrolled_students(): void
     {
-        $clase   = Clase::factory()->create();
+        $clase = Clase::factory()->create();
         $student = Student::factory()->create();
         $clase->students()->attach($student->id, ['enrolled_at' => today()->toDateString()]);
 
@@ -54,15 +53,15 @@ class AttendanceControllerTest extends TestCase
 
     public function test_take_loads_existing_attendance_for_date(): void
     {
-        $clase   = Clase::factory()->create();
+        $clase = Clase::factory()->create();
         $student = Student::factory()->create();
         $clase->students()->attach($student->id, ['enrolled_at' => today()->toDateString()]);
 
         Attendance::create([
-            'clase_id'   => $clase->id,
+            'clase_id' => $clase->id,
             'student_id' => $student->id,
-            'date'       => today()->toDateString(),
-            'present'    => true,
+            'date' => today()->toDateString(),
+            'present' => true,
         ]);
 
         $response = $this->actingAsAdmin()
@@ -76,10 +75,10 @@ class AttendanceControllerTest extends TestCase
     public function test_take_accepts_custom_date(): void
     {
         $clase = Clase::factory()->create();
-        $date  = '2026-03-15';
+        $date = '2026-03-15';
 
         $response = $this->actingAsAdmin()
-            ->get(route('attendance.take', $clase) . '?date=' . $date)
+            ->get(route('attendance.take', $clase).'?date='.$date)
             ->assertOk();
 
         $this->assertEquals($date, $response->viewData('date')->toDateString());
@@ -87,7 +86,7 @@ class AttendanceControllerTest extends TestCase
 
     public function test_take_shows_non_enrolled_students_as_extra(): void
     {
-        $clase   = Clase::factory()->create();
+        $clase = Clase::factory()->create();
         $outside = Student::factory()->create(['active' => true]);
 
         $response = $this->actingAsAdmin()->get(route('attendance.take', $clase))->assertOk();
@@ -102,48 +101,64 @@ class AttendanceControllerTest extends TestCase
 
     public function test_toggle_creates_attendance_record(): void
     {
-        $clase   = Clase::factory()->create();
+        $clase = Clase::factory()->create();
         $student = Student::factory()->create();
+        $clase->students()->attach($student);
 
         $this->actingAsAdmin()
             ->postJson(route('attendance.toggle', $clase), [
                 'student_id' => $student->id,
-                'date'       => today()->toDateString(),
-                'present'    => true,
+                'date' => today()->toDateString(),
+                'present' => true,
             ])
             ->assertOk()
             ->assertJson(['ok' => true]);
 
         $this->assertDatabaseHas('attendances', [
-            'clase_id'   => $clase->id,
+            'clase_id' => $clase->id,
             'student_id' => $student->id,
-            'present'    => true,
+            'present' => true,
         ]);
+    }
+
+    public function test_toggle_rejects_unenrolled_student(): void
+    {
+        $clase = Clase::factory()->create();
+        $student = Student::factory()->create();
+
+        $this->actingAsAdmin()
+            ->postJson(route('attendance.toggle', $clase), [
+                'student_id' => $student->id,
+                'date' => today()->toDateString(),
+                'present' => true,
+            ])
+            ->assertForbidden();
     }
 
     public function test_toggle_updates_existing_attendance(): void
     {
-        $clase   = Clase::factory()->create();
+        $clase = Clase::factory()->create();
         $student = Student::factory()->create();
+        $clase->students()->attach($student);
 
         Attendance::create([
-            'clase_id'   => $clase->id,
+            'clase_id' => $clase->id,
             'student_id' => $student->id,
-            'date'       => today()->toDateString(),
-            'present'    => true,
+            'date' => today()->toDateString(),
+            'present' => true,
         ]);
 
         $this->actingAsAdmin()
             ->postJson(route('attendance.toggle', $clase), [
                 'student_id' => $student->id,
-                'date'       => today()->toDateString(),
-                'present'    => false,
+                'date' => today()->toDateString(),
+                'present' => false,
             ]);
 
         $this->assertDatabaseHas('attendances', [
-            'clase_id'   => $clase->id,
+            'clase_id' => $clase->id,
             'student_id' => $student->id,
-            'present'    => false,
+            'present' => false,
         ]);
         $this->assertDatabaseCount('attendances', 1);
     }
@@ -154,7 +169,7 @@ class AttendanceControllerTest extends TestCase
 
         $this->actingAsAdmin()
             ->postJson(route('attendance.toggle', $clase), [
-                'date'    => today()->toDateString(),
+                'date' => today()->toDateString(),
                 'present' => true,
             ])
             ->assertUnprocessable();
@@ -171,13 +186,13 @@ class AttendanceControllerTest extends TestCase
 
         $clase->students()->attach(
             [$s1->id => ['enrolled_at' => today()->toDateString()],
-             $s2->id => ['enrolled_at' => today()->toDateString()],
-             $s3->id => ['enrolled_at' => today()->toDateString()]]
+                $s2->id => ['enrolled_at' => today()->toDateString()],
+                $s3->id => ['enrolled_at' => today()->toDateString()]]
         );
 
         $this->actingAsAdmin()
             ->post(route('attendance.save', $clase), [
-                'date'    => today()->toDateString(),
+                'date' => today()->toDateString(),
                 'present' => [$s1->id => '1', $s2->id => '1'],  // s3 ausente
             ])
             ->assertRedirect(route('attendance.index'))
@@ -190,26 +205,26 @@ class AttendanceControllerTest extends TestCase
 
     public function test_save_updates_existing_records(): void
     {
-        $clase   = Clase::factory()->create();
+        $clase = Clase::factory()->create();
         $student = Student::factory()->create();
         $clase->students()->attach($student->id, ['enrolled_at' => today()->toDateString()]);
 
         Attendance::create([
-            'clase_id'   => $clase->id,
+            'clase_id' => $clase->id,
             'student_id' => $student->id,
-            'date'       => today()->toDateString(),
-            'present'    => false,
+            'date' => today()->toDateString(),
+            'present' => false,
         ]);
 
         $this->actingAsAdmin()
             ->post(route('attendance.save', $clase), [
-                'date'    => today()->toDateString(),
+                'date' => today()->toDateString(),
                 'present' => [$student->id => '1'],
             ]);
 
         $this->assertDatabaseHas('attendances', [
             'student_id' => $student->id,
-            'present'    => true,
+            'present' => true,
         ]);
         $this->assertDatabaseCount('attendances', 1);
     }
@@ -229,39 +244,39 @@ class AttendanceControllerTest extends TestCase
 
     public function test_add_student_enrolls_and_marks_present(): void
     {
-        $clase   = Clase::factory()->create();
+        $clase = Clase::factory()->create();
         $student = Student::factory()->create();
 
         $this->actingAsAdmin()
             ->postJson(route('attendance.add-student', $clase), [
                 'student_id' => $student->id,
-                'date'       => today()->toDateString(),
+                'date' => today()->toDateString(),
             ])
             ->assertOk()
             ->assertJson(['ok' => true]);
 
         $this->assertDatabaseHas('clase_student', [
-            'clase_id'   => $clase->id,
+            'clase_id' => $clase->id,
             'student_id' => $student->id,
         ]);
 
         $this->assertDatabaseHas('attendances', [
-            'clase_id'   => $clase->id,
+            'clase_id' => $clase->id,
             'student_id' => $student->id,
-            'present'    => true,
+            'present' => true,
         ]);
     }
 
     public function test_add_student_is_idempotent_for_already_enrolled(): void
     {
-        $clase   = Clase::factory()->create();
+        $clase = Clase::factory()->create();
         $student = Student::factory()->create();
         $clase->students()->attach($student->id, ['enrolled_at' => today()->toDateString()]);
 
         $this->actingAsAdmin()
             ->postJson(route('attendance.add-student', $clase), [
                 'student_id' => $student->id,
-                'date'       => today()->toDateString(),
+                'date' => today()->toDateString(),
             ])
             ->assertOk();
 
@@ -275,7 +290,7 @@ class AttendanceControllerTest extends TestCase
         $this->actingAsAdmin()
             ->postJson(route('attendance.add-student', $clase), [
                 'student_id' => 9999,  // no existe
-                'date'       => today()->toDateString(),
+                'date' => today()->toDateString(),
             ])
             ->assertUnprocessable();
     }

@@ -20,11 +20,13 @@ Route::get('/student/lookup', [StudentPortalController::class, 'lookup'])->name(
 
 // --- Autenticación PIN (admin) ---
 Route::get('/login', [PinController::class, 'show'])->name('login');
-Route::post('/login', [PinController::class, 'authenticate'])->name('login.post');
+Route::post('/login', [PinController::class, 'authenticate'])
+    ->middleware('throttle:5,1')
+    ->name('login.post');
 Route::post('/logout', [PinController::class, 'logout'])->name('logout');
 
 // --- Rutas admin protegidas por PIN ---
-Route::middleware(['check.pin', 'log.access'])->group(function () {
+Route::middleware(['check.pin', 'session.timeout', 'log.access'])->group(function () {
 
     Route::get('/admin', [DashboardController::class, 'index'])->name('dashboard');
 

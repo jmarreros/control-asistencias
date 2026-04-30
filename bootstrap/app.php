@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckPin;
+use App\Http\Middleware\CheckSessionTimeout;
 use App\Http\Middleware\CheckStudentAuth;
 use App\Http\Middleware\LogAdminAccess;
 use Illuminate\Foundation\Application;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.pin' => CheckPin::class,
             'check.student' => CheckStudentAuth::class,
             'log.access' => LogAdminAccess::class,
+            'session.timeout' => CheckSessionTimeout::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

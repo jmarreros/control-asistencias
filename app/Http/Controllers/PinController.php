@@ -21,7 +21,7 @@ class PinController extends Controller
     {
         $request->validate(['pin' => 'required']);
 
-        $currentPin = Setting::get('app_pin') ?? env('APP_PIN', '1234');
+        $currentPin = Setting::get('app_pin') ?? config('app.pin', '1234');
 
         if ($request->pin === $currentPin) {
             session()->forget('student_id');
