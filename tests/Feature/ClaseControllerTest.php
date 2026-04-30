@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Clase;
-use App\Models\Student;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -38,7 +37,7 @@ class ClaseControllerTest extends TestCase
         $this->actingAsAdmin()
             ->get(route('clases.index'))
             ->assertOk()
-            ->assertViewHas('clases', fn($clases) => $clases->count() === 3);
+            ->assertViewHas('clases', fn ($clases) => $clases->count() === 3);
     }
 
     public function test_index_is_empty_when_no_courses(): void
@@ -46,7 +45,7 @@ class ClaseControllerTest extends TestCase
         $this->actingAsAdmin()
             ->get(route('clases.index'))
             ->assertOk()
-            ->assertViewHas('clases', fn($clases) => $clases->isEmpty());
+            ->assertViewHas('clases', fn ($clases) => $clases->isEmpty());
     }
 
     // -------------------------------------------------------------------------
@@ -68,9 +67,9 @@ class ClaseControllerTest extends TestCase
     public function test_store_creates_course_with_valid_data(): void
     {
         $payload = [
-            'name'        => 'Salsa Básica',
+            'name' => 'Salsa Básica',
             'description' => 'Introducción a la salsa',
-            'schedule'    => [
+            'schedule' => [
                 'lun' => ['start' => '18:00', 'end' => '19:30'],
                 'mie' => ['start' => '18:00', 'end' => '19:30'],
             ],
@@ -118,7 +117,7 @@ class ClaseControllerTest extends TestCase
     public function test_store_ignores_days_without_start_time(): void
     {
         $payload = [
-            'name'     => 'Bachata',
+            'name' => 'Bachata',
             'schedule' => [
                 'lun' => ['start' => '19:00', 'end' => '20:00'],
                 'mar' => ['start' => '',       'end' => ''],  // día vacío
@@ -130,6 +129,23 @@ class ClaseControllerTest extends TestCase
         $clase = Clase::where('name', 'Bachata')->first();
         $this->assertArrayHasKey('lun', $clase->schedule);
         $this->assertArrayNotHasKey('mar', $clase->schedule);
+    }
+
+    public function test_store_ignores_days_with_malformed_time(): void
+    {
+        $payload = [
+            'name' => 'Merengue',
+            'schedule' => [
+                'lun' => ['start' => '18:00', 'end' => '19:30'],
+                'mie' => ['start' => 'invalid', 'end' => 'bad'],
+            ],
+        ];
+
+        $this->actingAsAdmin()->post(route('clases.store'), $payload);
+
+        $clase = Clase::where('name', 'Merengue')->first();
+        $this->assertArrayHasKey('lun', $clase->schedule);
+        $this->assertArrayNotHasKey('mie', $clase->schedule);
     }
 
     public function test_store_sets_active_true_by_default(): void
@@ -151,7 +167,7 @@ class ClaseControllerTest extends TestCase
             ->get(route('clases.edit', $clase))
             ->assertOk()
             ->assertViewIs('clases.edit')
-            ->assertViewHas('clase', fn($c) => $c->id === $clase->id);
+            ->assertViewHas('clase', fn ($c) => $c->id === $clase->id);
     }
 
     // -------------------------------------------------------------------------
@@ -164,7 +180,7 @@ class ClaseControllerTest extends TestCase
 
         $this->actingAsAdmin()
             ->put(route('clases.update', $clase), [
-                'name'   => 'Nombre Actualizado',
+                'name' => 'Nombre Actualizado',
                 'active' => true,
             ])
             ->assertRedirect(route('clases.index'))
@@ -179,7 +195,7 @@ class ClaseControllerTest extends TestCase
 
         $this->actingAsAdmin()
             ->put(route('clases.update', $clase), [
-                'name'   => $clase->name,
+                'name' => $clase->name,
                 'active' => false,
             ]);
 
@@ -192,7 +208,7 @@ class ClaseControllerTest extends TestCase
 
         $this->actingAsAdmin()
             ->put(route('clases.update', $clase), [
-                'name'     => $clase->name,
+                'name' => $clase->name,
                 'schedule' => [
                     'vie' => ['start' => '20:00', 'end' => '21:30'],
                 ],

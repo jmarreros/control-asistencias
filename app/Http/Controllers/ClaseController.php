@@ -10,6 +10,7 @@ class ClaseController extends Controller
     public function index()
     {
         $clases = Clase::withCount('students')->orderBy('name')->get();
+
         return view('clases.index', compact('clases'));
     }
 
@@ -21,7 +22,7 @@ class ClaseController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:100',
+            'name' => 'required|string|max:100',
             'description' => 'nullable|string',
         ]);
 
@@ -41,9 +42,9 @@ class ClaseController extends Controller
     public function update(Request $request, Clase $clase)
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:100',
+            'name' => 'required|string|max:100',
             'description' => 'nullable|string',
-            'active'      => 'boolean',
+            'active' => 'boolean',
         ]);
 
         $data['schedule'] = $this->parseSchedule($request->input('schedule', []));
@@ -58,14 +59,14 @@ class ClaseController extends Controller
     {
         $order = ['lun', 'mar', 'mie', 'jue', 'vie', 'sab', 'dom'];
         $schedule = collect($order)
-            ->filter(fn($day) => !empty($input[$day]['start']))
-            ->mapWithKeys(fn($day) => [$day => [
+            ->filter(fn ($day) => ! empty($input[$day]['start']) && preg_match('/^\d{2}:\d{2}$/', $input[$day]['start']))
+            ->mapWithKeys(fn ($day) => [$day => [
                 'start' => $input[$day]['start'],
-                'end'   => $input[$day]['end'] ?? '',
+                'end' => preg_match('/^\d{2}:\d{2}$/', $input[$day]['end'] ?? '') ? $input[$day]['end'] : '',
             ]])
             ->toArray();
 
-        return !empty($schedule) ? $schedule : null;
+        return ! empty($schedule) ? $schedule : null;
     }
 
     public function destroy(Clase $clase)

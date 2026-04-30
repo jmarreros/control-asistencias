@@ -113,6 +113,24 @@ class StudentControllerTest extends TestCase
             ->assertSessionHasErrors('name');
     }
 
+    public function test_store_rejects_dni_with_invalid_format(): void
+    {
+        $this->actingAsAdmin()
+            ->post(route('students.store'), ['name' => 'Test', 'phone' => '987000001', 'dni' => 'ABCD1234'])
+            ->assertSessionHasErrors('dni');
+
+        $this->actingAsAdmin()
+            ->post(route('students.store'), ['name' => 'Test', 'phone' => '987000001', 'dni' => '1234567'])
+            ->assertSessionHasErrors('dni');
+    }
+
+    public function test_store_rejects_phone_with_invalid_characters(): void
+    {
+        $this->actingAsAdmin()
+            ->post(route('students.store'), ['name' => 'Test', 'phone' => 'abc123xyz'])
+            ->assertSessionHasErrors('phone');
+    }
+
     public function test_store_sets_active_true_by_default(): void
     {
         $this->actingAsAdmin()->post(route('students.store'), ['name' => 'Activo', 'phone' => '987000001']);
