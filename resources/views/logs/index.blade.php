@@ -24,7 +24,7 @@
      x-data="{ showDelete: false }">
 
     {{-- Filtros --}}
-    <div class="flex gap-2 mb-4">
+    <div class="flex items-center gap-2 mb-4">
         <a href="{{ route('logs.index') }}"
            class="px-3 py-1.5 rounded-lg text-sm font-medium {{ $type === 'all' ? 'bg-indigo-600 text-white' : 'bg-white/10 text-white/70' }}">
             Todos

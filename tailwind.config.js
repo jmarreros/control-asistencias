@@ -17,4 +17,7 @@ export default {
         },
     },
     plugins: [],
+    safelist: [
+        'bg-gray-900', // modal de logs — única aparición, el purger la elimina en producción
+    ],
 };
