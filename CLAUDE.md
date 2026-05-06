@@ -38,3 +38,4 @@ php artisan schedule:run   # ejecutar tareas programadas manualmente
 @specs/features/reports.md
 @specs/features/import.md
 @specs/features/logs.md
+@specs/features/checkin.md

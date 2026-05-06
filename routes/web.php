@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccessLogController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\CheckinController;
 use App\Http\Controllers\ClaseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrollmentController;
@@ -54,6 +55,13 @@ Route::middleware(['check.pin', 'session.timeout', 'log.access'])->group(functio
     Route::post('attendance/{clase}/save', [AttendanceController::class, 'save'])->name('attendance.save');
     Route::post('attendance/{clase}/toggle', [AttendanceController::class, 'toggle'])->name('attendance.toggle');
     Route::post('attendance/{clase}/add-student', [AttendanceController::class, 'addStudent'])->name('attendance.add-student');
+
+    // Kiosko de entrada — Registrar Asistencias
+    Route::get('checkin/detect-clase', [CheckinController::class, 'detectClase'])->name('checkin.detect');
+    Route::get('checkin/attendances', [CheckinController::class, 'attendances'])->name('checkin.attendances');
+    Route::get('checkin', [CheckinController::class, 'show'])->name('checkin.show');
+    Route::post('checkin', [CheckinController::class, 'store'])->name('checkin.store');
+    Route::delete('checkin', [CheckinController::class, 'destroy'])->name('checkin.destroy');
 
     // Configuración
     Route::get('settings', [SettingController::class, 'edit'])->name('settings.edit');

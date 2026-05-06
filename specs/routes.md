@@ -30,6 +30,12 @@ POST      /attendance/{clase}/save       AttendanceController@save
 POST      /attendance/{clase}/toggle     AttendanceController@toggle
 POST      /attendance/{clase}/add-student AttendanceController@addStudent
 
+GET       /checkin                         CheckinController@show         ← kiosko de entrada por DNI
+POST      /checkin                         CheckinController@store        ← marcar asistencia (JSON)
+DELETE    /checkin                         CheckinController@destroy      ← eliminar asistencia (JSON)
+GET       /checkin/attendances             CheckinController@attendances  ← asistencias del día para un curso
+GET       /checkin/detect-clase            CheckinController@detectClase  ← detección interna (server-side)
+
 GET       /import                        ImportController@show
 POST      /import                        ImportController@import
 
