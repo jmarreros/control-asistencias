@@ -149,6 +149,7 @@
                 </div>
                 <select
                     x-model="claseId"
+                    @click.stop
                     @change="isAutoDetected = false; loadAttendances()"
                     class="flex-1 bg-white/10 border border-white/20 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 min-w-0">
                     <option value="" class="bg-gray-900 text-white/50">— Sin curso seleccionado —</option>
