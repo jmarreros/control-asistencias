@@ -19,6 +19,7 @@ class AccessLog extends Model
             'action' => $action,
             'detail' => $detail,
             'ip' => $ip ?? request()->ip(),
+            'created_at' => now(),
         ]);
     }
 }
