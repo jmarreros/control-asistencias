@@ -9,7 +9,7 @@ class ClaseController extends Controller
 {
     public function index()
     {
-        $clases = Clase::withCount('students')->orderBy('name')->get();
+        $clases = Clase::withCount(['students' => fn ($q) => $q->where('active', true)])->orderBy('name')->get();
 
         return view('clases.index', compact('clases'));
     }

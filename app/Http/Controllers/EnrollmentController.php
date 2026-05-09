@@ -11,7 +11,7 @@ class EnrollmentController extends Controller
     public function edit(Clase $clase)
     {
         $allStudents = Student::where('active', true)->orderBy('name')->get();
-        $enrolledIds = $clase->students()->pluck('students.id')->toArray();
+        $enrolledIds = $clase->students()->where('active', true)->pluck('students.id')->toArray();
 
         return view('clases.enroll', compact('clase', 'allStudents', 'enrolledIds'));
     }

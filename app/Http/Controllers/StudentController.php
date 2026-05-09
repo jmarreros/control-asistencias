@@ -11,7 +11,7 @@ class StudentController extends Controller
 {
     public function index()
     {
-        $students = Student::with('currentPlan')->orderBy('name')->get();
+        $students = Student::with('currentPlan')->where('active', true)->orderBy('name')->get();
 
         Setting::preload(['notify_days_before', 'notify_classes_remaining', 'notify_message', 'notify_expired_message']);
 
@@ -70,11 +70,28 @@ class StudentController extends Controller
 
     public function create()
     {
-        return view('students.create');
+        $existingStudents = Student::orderBy('name')
+            ->get(['id', 'name', 'dni', 'phone', 'active'])
+            ->map(fn ($s) => array_merge($s->toArray(), [
+                'edit_url' => route('students.edit', $s->id),
+            ]));
+
+        return view('students.create', compact('existingStudents'));
     }
 
     public function store(Request $request)
     {
+        if ($request->filled('inactive_student_id')) {
+            $student = Student::where('id', $request->inactive_student_id)
+                ->where('active', false)
+                ->firstOrFail();
+
+            $student->update(['active' => true]);
+
+            return redirect()->route('students.plans.index', $student)
+                ->with('success', 'Alumno reactivado correctamente. Ahora agrega su plan de clases.');
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'dni' => 'nullable|digits:8|unique:students,dni',

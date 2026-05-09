@@ -31,6 +31,7 @@ php artisan schedule:run   # ejecutar tareas programadas manualmente
 @specs/routes.md
 @specs/auth.md
 @specs/ui.md
+@specs/features/students.md
 @specs/features/attendance.md
 @specs/features/plans.md
 @specs/features/portal.md

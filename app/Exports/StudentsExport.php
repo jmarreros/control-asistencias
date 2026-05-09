@@ -28,7 +28,7 @@ class StudentsExport implements FromCollection, WithHeadings, WithMapping, WithS
 
     public function collection()
     {
-        return Student::with('currentPlan')->orderBy('name')->get();
+        return Student::with('currentPlan')->where('active', true)->orderBy('name')->get();
     }
 
     public function headings(): array

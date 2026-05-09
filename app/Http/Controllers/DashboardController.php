@@ -21,7 +21,7 @@ class DashboardController extends Controller
         $classesThreshold = (int) Setting::get('notify_classes_remaining', 1);
 
         $today    = today()->toDateString();
-        $students = Student::with('currentPlan')->get();
+        $students = Student::with('currentPlan')->where('active', true)->get();
 
         $activeStudents = $students->filter(function ($s) use ($today) {
             $plan = $s->currentPlan;

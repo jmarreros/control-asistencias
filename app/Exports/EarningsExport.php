@@ -22,6 +22,7 @@ class EarningsExport implements FromCollection, WithHeadings, WithMapping, WithS
     public function collection()
     {
         return StudentPlan::with('student')
+            ->whereHas('student', fn ($q) => $q->where('active', true))
             ->whereBetween('created_at', [$this->from . ' 00:00:00', $this->to . ' 23:59:59'])
             ->whereNotNull('price')
             ->orderBy('created_at')

@@ -57,7 +57,7 @@ class AttendanceController extends Controller
         $dayKey = $dayMap[$date->dayOfWeek];
         $dateInSchedule = is_array($clase->schedule) && isset($clase->schedule[$dayKey]);
 
-        $students = $clase->students()->with('currentPlan')->orderBy('students.name')->get();
+        $students = $clase->students()->where('active', true)->with('currentPlan')->orderBy('students.name')->get();
 
         $existing = Attendance::where('clase_id', $clase->id)
             ->where('date', $date->toDateString())
@@ -189,7 +189,7 @@ class AttendanceController extends Controller
             'date' => 'required|date',
         ]);
 
-        $students = $clase->students()->pluck('students.id');
+        $students = $clase->students()->where('active', true)->pluck('students.id');
         $presentMap = $request->input('present', []);
         $date = $request->date;
 

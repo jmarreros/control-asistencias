@@ -7,8 +7,8 @@ Tres tarjetas de resumen + lista de cursos para tomar asistencia:
 |---|---|
 | `StudentPlan` count por mes | Planes este mes |
 | `Setting::preload([notify_days_before, notify_classes_remaining])` | Umbrales por vencer |
-| `Student::with('currentPlan')->get()` (2 queries) | Base para las dos métricas siguientes |
-| `Clase::where('active')->withCount('students')->get()` | Lista de cursos |
+| `Student::with('currentPlan')->where('active', true)->get()` (2 queries) | Base para las dos métricas siguientes |
+| `Clase::where('active')->withCount(['students' => fn($q) => $q->where('active', true)])->get()` | Lista de cursos |
 
 - **Con plan activo**: alumnos cuyo `currentPlan` tiene `start_date <= hoy`, `end_date >= hoy` y `classes_remaining > 0` (o null para ilimitados).
 - **Planes este mes**: planes con `start_date` en el mes actual (excluye soft-deleted).
@@ -27,7 +27,7 @@ La pantalla principal de asistencia es un **buscador de alumnos** por nombre o D
 
 ## Flujo por curso (`/attendance/{clase}/take`)
 Desde el dashboard, los cursos activos enlazan a esta vista:
-- Muestra todos los alumnos inscritos en ese curso con toggles
+- Muestra los alumnos **activos** inscritos en ese curso con toggles (`$clase->students()->where('active', true)`)
 - El botón de retroceso lleva al **dashboard** (no a `/attendance`)
 - Búsqueda por nombre o DNI en la lista de alumnos
 - Modal "Añadir alumno" para inscribir alumnos no matriculados

@@ -30,6 +30,7 @@ class ReportController extends Controller
 
         $attendances = Attendance::with(['student.currentPlan'])
             ->where('clase_id', $clase->id)
+            ->whereHas('student', fn ($q) => $q->where('active', true))
             ->whereBetween('date', [$from, $to])
             ->orderBy('date')
             ->get();
@@ -56,6 +57,7 @@ class ReportController extends Controller
         $to   = $request->to   ?? now()->toDateString();
 
         $plans = StudentPlan::with('student')
+            ->whereHas('student', fn ($q) => $q->where('active', true))
             ->whereBetween('start_date', [$from, $to])
             ->whereNotNull('price')
             ->orderBy('start_date', 'desc')

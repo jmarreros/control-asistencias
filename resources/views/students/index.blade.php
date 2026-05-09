@@ -67,7 +67,7 @@
             <button @click="tab = 'activos'; search = ''"
                     :class="tab === 'activos' ? 'bg-green-600 text-white shadow-sm' : 'text-white/50'"
                     class="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-[10px] transition-all duration-200">
-                <span>Activos</span>
+                <span>Plan Activo</span>
                 <span x-show="activeCount > 0"
                       :class="tab === 'activos' ? 'bg-white/25 text-white' : 'bg-white/15 text-white/60'"
                       class="text-[10px] px-1 py-0.5 rounded-full leading-none"
@@ -114,8 +114,7 @@
     {{-- Lista TAB: Todos --}}
     <div x-show="tab === 'todos' || tab === 'activos'">
         <template x-for="student in filtered" :key="student.id">
-            <div :class="!student.active ? 'opacity-50' : ''"
-                 class="px-4 py-3 border-b border-white/10">
+            <div class="px-4 py-3 border-b border-white/10">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-indigo-500/30 border border-indigo-400/30 flex items-center justify-center
                                 text-indigo-300 font-bold text-sm shrink-0"
@@ -124,12 +123,11 @@
                     <div class="min-w-0 flex-1">
                         <p class="font-medium text-white truncate" x-text="student.name"></p>
                         <p class="text-xs mt-0.5">
-                            <span x-show="!student.active"                                     class="text-red-400">Inactivo</span>
-                            <span x-show="student.active && student.planStatus === 'ok'"       class="text-green-400">Plan activo</span>
-                            <span x-show="student.active && student.planStatus === 'pending'"  class="text-blue-400">Por iniciar</span>
-                            <span x-show="student.active && student.planStatus === 'exhausted'" class="text-orange-400">Clases agotadas</span>
-                            <span x-show="student.active && student.planStatus === 'expired'"  class="text-red-400">Plan vencido</span>
-                            <span x-show="student.active && student.planStatus === 'no_plan'"  class="text-white/40">Sin plan</span>
+                            <span x-show="student.planStatus === 'ok'"        class="text-green-400">Plan activo</span>
+                            <span x-show="student.planStatus === 'pending'"   class="text-blue-400">Por iniciar</span>
+                            <span x-show="student.planStatus === 'exhausted'" class="text-orange-400">Clases agotadas</span>
+                            <span x-show="student.planStatus === 'expired'"   class="text-red-400">Plan vencido</span>
+                            <span x-show="student.planStatus === 'no_plan'"   class="text-white/40">Sin plan</span>
                         </p>
                     </div>
                 </div>
@@ -274,6 +272,10 @@
                         </svg>
                         Avisar
                     </a>
+                    <span x-show="!student.waUrlExpired"
+                          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-white/30">
+                        Sin teléfono
+                    </span>
                     <a :href="student.planUrl"
                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-500/20 border border-red-400/30 text-red-300">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
