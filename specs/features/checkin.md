@@ -47,11 +47,14 @@ Usa `layouts/app.blade.php`. No mobile-first — centrado en pantalla de portát
 
 ### Cabecera
 
-- Título: **"Registrar Asistencias"** + fecha del día.
+- Título: **"Registrar Asistencias por DNI"** + fecha del día.
 - Selector de curso (`<select>` Alpine): lista todos los cursos activos ordenados por nombre.
   - Opción pre-seleccionada: curso detectado por horario (o vacía si ninguno coincide).
   - Al cambiar: la lista de asistencias se recarga desde el servidor (`GET /checkin/attendances`).
 - Imagen del curso a la izquierda del `<select>`: `salsa.jpg` / `bachata.jpg` / `lady.jpg` según el nombre; círculo vacío (`bg-white/10`) si no hay imagen o no hay selección. Calculado con getter Alpine reactivo `claseImage`.
+- **Horario del curso** (`claseScheduleText`): texto debajo del selector con los días y horas del curso seleccionado, alineado a la izquierda del `<select>`. Formato: `Lun · Mié (6:00pm - 7:30pm)`. Calculado client-side en Alpine a partir del campo `schedule` incluido en el JSON de cursos. Solo visible cuando hay un curso seleccionado.
+  - Los cursos se pasan con `schedule` incluido: `$clases->map(fn($c) => ['id' => ..., 'name' => ..., 'schedule' => $c->schedule])`.
+  - Agrupa días con el mismo horario, formatea horas en 12h con am/pm, igual que `scheduleText()` del modelo pero en JS.
 - Badge de estado:
   - Verde "En horario" → curso auto-detectado por ventana horaria.
   - Ámbar "Selección manual" → el admin cambió el selector.

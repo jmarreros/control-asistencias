@@ -9,7 +9,7 @@
     x-data="{
         claseId: '{{ $detected?->id ?? '' }}',
         isAutoDetected: {{ $detected ? 'true' : 'false' }},
-        clases: {{ $clases->map(fn($c) => ['id' => (string)$c->id, 'name' => $c->name])->toJson() }},
+        clases: {{ $clases->map(fn($c) => ['id' => (string)$c->id, 'name' => $c->name, 'schedule' => $c->schedule])->toJson() }},
         get claseImage() {
             if (!this.claseId) return null;
             var c = this.clases.find(c => c.id === this.claseId);
@@ -19,6 +19,34 @@
             if (n.indexOf('bachata') !== -1) return '{{ asset('images/bachata.jpg') }}';
             if (n.indexOf('lady') !== -1) return '{{ asset('images/lady.jpg') }}';
             return null;
+        },
+        get claseScheduleText() {
+            if (!this.claseId) return null;
+            var c = this.clases.find(c => c.id === this.claseId);
+            if (!c || !c.schedule) return null;
+            var labels = {lun:'Lun', mar:'Mar', mie:'Mié', jue:'Jue', vie:'Vie', sab:'Sáb', dom:'Dom'};
+            var groups = {};
+            for (var day in c.schedule) {
+                var times = c.schedule[day];
+                var start = times.start || '';
+                var end = times.end || '';
+                var key = start + '|' + end;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(labels[day] || day);
+            }
+            function fmt(t) {
+                if (!t) return '';
+                var p = t.split(':');
+                var h = parseInt(p[0]), m = p[1];
+                var ampm = h >= 12 ? 'pm' : 'am';
+                h = h % 12 || 12;
+                return h + ':' + m + ampm;
+            }
+            return Object.entries(groups).map(function([key, days]) {
+                var parts = key.split('|');
+                var timeStr = fmt(parts[0]) + (parts[1] ? ' - ' + fmt(parts[1]) : '');
+                return days.join(' · ') + ' (' + timeStr + ')';
+            }).join('  ·  ');
         },
         dni: '',
         loading: false,
@@ -128,7 +156,7 @@
                 <img src="{{ asset('images/logo-xs.jpg') }}" class="w-8 h-8 object-contain rounded-full shrink-0" alt="Logo">
             </a>
             <div class="flex-1 min-w-0">
-                <h1 class="text-lg font-bold text-white">Registrar Asistencias</h1>
+                <h1 class="text-lg font-bold text-white">Registrar Asistencias por DNI</h1>
                 <p class="text-white/50 text-xs">{{ now()->locale('es')->isoFormat('dddd D [de] MMMM [de] YYYY') }}</p>
             </div>
         </div>
@@ -158,12 +186,15 @@
                     @endforeach
                 </select>
             </div>
+            <p x-show="claseId && claseScheduleText"
+               x-text="claseScheduleText"
+               class="text-white/40 text-xs mt-2" style="padding-left:60px"></p>
         </div>
     </div>
 
     {{-- Campo DNI --}}
     <div class="px-4 pt-8 pb-2">
-        <p class="text-center text-white/30 text-xs uppercase tracking-widest mb-3">Ingresa tu DNI y presiona Enter</p>
+        <p class="text-center text-white/30 text-xs uppercase tracking-widest mb-3">Ingresar DNI y presionar Enter</p>
         <div class="relative">
             <input
                 type="text"

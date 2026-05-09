@@ -54,6 +54,7 @@
         <input type="text" name="name"
                x-model="name"
                @input="onNameInput()"
+               @blur="normalizeName()"
                @focus="showSuggestions = suggestions.length > 0"
                @click.away="showSuggestions = false"
                :readonly="selectedId !== null"
@@ -82,6 +83,10 @@
             </template>
         </div>
 
+        @if(!$errors->has('name'))
+            <p x-show="name.length > 0 && !hasValidName && selectedId === null"
+               class="text-red-400 text-xs mt-1">El nombre debe contener al menos dos palabras.</p>
+        @endif
         @error('name')
             <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
         @enderror
@@ -107,12 +112,13 @@
 
     {{-- DNI --}}
     <div>
-        <label class="block text-sm font-medium text-white/80 mb-1">DNI</label>
+        <label class="block text-sm font-medium text-white/80 mb-1">DNI *</label>
         <input type="text" name="dni"
                x-model="dni"
                @input="onDniInput()"
                :readonly="selectedId !== null"
-               maxlength="20" inputmode="numeric" autocomplete="off"
+               :required="selectedId === null"
+               maxlength="12" autocomplete="off"
                placeholder="Ej. 12345678"
                class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white placeholder-white/40
                       bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15
@@ -185,8 +191,8 @@
 
             get dniConflict() {
                 if (this.selectedId !== null) return null;
-                const d = this.dni.replace(/\D/g, '');
-                if (d.length !== 8) return null;
+                const d = this.dni.trim();
+                if (d.length < 8) return null;
                 return this.existingStudents.find(s => s.dni === d) || null;
             },
 
@@ -196,11 +202,25 @@
                 return this.existingStudents.filter(s => s.active && s.name.toLowerCase().includes(q));
             },
 
+            get hasValidName() {
+                return this.name.trim().split(/\s+/).filter(Boolean).length >= 2;
+            },
+
             get canSubmit() {
                 if (this.selectedId !== null) return true;
+                if (!this.hasValidName) return false;
                 if (this.dniConflict !== null) return false;
                 if (this.activeNameConflicts.length > 0 && !this.nameConflictConfirmed) return false;
                 return true;
+            },
+
+            normalizeName() {
+                if (this.selectedId !== null) return;
+                this.name = this.name
+                    .toLowerCase()
+                    .split(' ')
+                    .map(w => w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)
+                    .join(' ');
             },
 
             onNameInput() {

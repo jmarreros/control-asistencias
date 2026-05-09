@@ -46,23 +46,40 @@
     </div>
 
     <a href="{{ route('checkin.show') }}"
-       class="flex items-center gap-3 bg-indigo-600/30 border border-indigo-400/30 rounded-xl px-4 py-3.5 mb-6 active:bg-indigo-600/50">
-        <div class="bg-indigo-500/30 rounded-lg p-2 shrink-0">
-            <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+       class="flex items-center gap-3 bg-emerald-600/30 border border-emerald-400/30 rounded-xl px-4 py-3.5 mb-4 active:bg-emerald-600/50">
+        <div class="bg-emerald-500/30 rounded-lg p-2 shrink-0">
+            <svg class="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
             </svg>
         </div>
         <div class="flex-1 min-w-0">
-            <p class="font-semibold text-white text-sm">Registrar Asistencias</p>
-            <p class="text-indigo-300/70 text-xs mt-0.5">Kiosko de entrada por DNI</p>
+            <p class="font-semibold text-white text-sm">Registrar Asistencias por DNI</p>
+            <p class="text-emerald-300/70 text-xs mt-0.5">Registro de asistencias por el alumno</p>
         </div>
         <svg class="w-4 h-4 text-white/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
     </a>
 
-    <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Tomar asistencia</h2>
+    <a href="{{ route('matricula.index') }}"
+       class="flex items-center gap-3 bg-indigo-600/20 border border-indigo-400/25 rounded-xl px-4 py-3.5 mb-4 active:bg-indigo-600/40">
+        <div class="bg-indigo-500/25 rounded-lg p-2 shrink-0">
+            <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+            <p class="font-semibold text-white text-sm">Registro de Matrícula y Planes</p>
+            <p class="text-indigo-300/60 text-xs mt-0.5">Buscar o crear alumno y gestionar su plan</p>
+        </div>
+        <svg class="w-4 h-4 text-white/30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+    </a>
+
+    <h2 class="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">Tomar asistencia por curso</h2>
 
     <div class="space-y-3">
     @forelse($activeClases as $clase)

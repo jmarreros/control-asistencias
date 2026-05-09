@@ -7,6 +7,10 @@
               : (str_contains($nombre, 'bachata') ? 'bachata.jpg'
               : (str_contains($nombre, 'lady')    ? 'lady.jpg'
               : null));
+    $daysList        = ['lun' => 'Lun', 'mar' => 'Mar', 'mie' => 'Mié', 'jue' => 'Jue', 'vie' => 'Vie', 'sab' => 'Sáb', 'dom' => 'Dom'];
+    $currentSchedule = old('schedule', $clase->schedule ?? []);
+    $emptyTimes      = array_fill_keys(array_keys($daysList), ['start' => '', 'end' => '']);
+    $initTimes       = array_merge($emptyTimes, array_map(fn($v) => is_array($v) ? $v : ['start' => $v, 'end' => ''], (array)$currentSchedule));
 @endphp
 <div class="bg-black/30 backdrop-blur-sm border-b border-white/10 px-4 pt-6 pb-4 flex items-center gap-3">
     <a href="{{ route('clases.index') }}" class="text-white">
@@ -25,7 +29,9 @@
     @endif
 </div>
 
-<form method="POST" action="{{ route('clases.update', $clase) }}" class="p-4 space-y-4">
+<form method="POST" action="{{ route('clases.update', $clase) }}"
+      x-data="scheduleSelector({{ Js::from(array_keys(array_filter((array)$currentSchedule))) }}, {{ Js::from($initTimes) }})"
+      class="p-4 space-y-4">
     @csrf
     @method('PUT')
 
@@ -38,16 +44,8 @@
     </div>
 
     {{-- Horario --}}
-    @php
-        $daysList = ['lun' => 'Lun', 'mar' => 'Mar', 'mie' => 'Mié', 'jue' => 'Jue', 'vie' => 'Vie', 'sab' => 'Sáb', 'dom' => 'Dom'];
-        $currentSchedule = old('schedule', $clase->schedule ?? []);
-    @endphp
-    @php
-        $emptyTimes = array_fill_keys(array_keys($daysList), ['start' => '', 'end' => '']);
-        $initTimes  = array_merge($emptyTimes, array_map(fn($v) => is_array($v) ? $v : ['start' => $v, 'end' => ''], (array)$currentSchedule));
-    @endphp
-    <div x-data="scheduleSelector({{ Js::from(array_keys(array_filter((array)$currentSchedule))) }}, {{ Js::from($initTimes) }})">
-        <label class="block text-sm font-medium text-white/80 mb-2">Horario</label>
+    <div>
+        <label class="block text-sm font-medium text-white/80 mb-2">Horario *</label>
 
         <div class="flex gap-1.5 flex-wrap mb-3">
             @foreach($daysList as $key => $label)
@@ -67,7 +65,7 @@
                     <span class="text-sm font-medium text-white/70 w-8">{{ $label }}</span>
                     <input type="time" name="schedule[{{ $key }}][start]"
                            x-model="times['{{ $key }}'].start"
-                           @change="propagate('{{ $key }}')"
+                           @change="autoEnd('{{ $key }}'); propagate('{{ $key }}')"
                            class="border border-white/50 rounded-lg px-3 py-1.5 text-sm
                                   bg-white/10 text-white
                                   focus:outline-none focus:border-purple-400 focus:bg-white/15">
@@ -80,6 +78,12 @@
                 </div>
             @endforeach
         </div>
+
+        <p x-show="selected.length === 0" class="text-red-400 text-xs mt-2">Selecciona al menos un día.</p>
+        <p x-show="scheduleHint" x-text="scheduleHint" class="text-amber-400 text-xs mt-2"></p>
+        @error('schedule')
+            <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+        @enderror
     </div>
 
     <div>
@@ -106,7 +110,9 @@
 
     <div class="pt-2">
         <button type="submit"
-                class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl text-lg">
+                :disabled="!hasValidSchedule"
+                :class="!hasValidSchedule ? 'opacity-50 cursor-not-allowed' : ''"
+                class="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl text-lg transition-opacity">
             Guardar cambios
         </button>
     </div>
@@ -116,40 +122,72 @@
 (function () {
     function registerScheduleSelector() {
         Alpine.data('scheduleSelector', (initialSelected, initialTimes) => ({
-        selected: initialSelected,
-        times: initialTimes,
-        toggle(day) {
-            if (this.selected.includes(day)) {
-                this.selected = this.selected.filter(function(d) { return d !== day; });
-                this.times[day] = { start: '', end: '' };
-            } else {
-                this.selected.push(day);
-                var ref = this.getRef(day);
-                this.times[day].start = ref.start;
-                this.times[day].end   = ref.end;
-            }
-        },
-        getRef(excludeDay) {
-            for (var i = 0; i < this.selected.length; i++) {
-                var d = this.selected[i];
-                if (d !== excludeDay && this.times[d].start) {
-                    return { start: this.times[d].start, end: this.times[d].end };
+            selected: initialSelected,
+            times:    initialTimes,
+
+            toggle(day) {
+                if (this.selected.includes(day)) {
+                    this.selected = this.selected.filter(function(d) { return d !== day; });
+                    this.times[day] = { start: '', end: '' };
+                } else {
+                    this.selected.push(day);
+                    var ref = this.getRef(day);
+                    this.times[day].start = ref.start;
+                    this.times[day].end   = ref.end;
+                    this.autoEnd(day);
                 }
-            }
-            return { start: '18:00', end: '' };
-        },
-        propagate(day) {
-            var val = this.times[day];
-            if (!val.start) return;
-            for (var i = 0; i < this.selected.length; i++) {
-                var d = this.selected[i];
-                if (d !== day && !this.times[d].start) {
-                    this.times[d].start = val.start;
-                    this.times[d].end   = val.end;
+            },
+
+            getRef(excludeDay) {
+                for (var i = 0; i < this.selected.length; i++) {
+                    var d = this.selected[i];
+                    if (d !== excludeDay && this.times[d].start) {
+                        return { start: this.times[d].start, end: this.times[d].end };
+                    }
                 }
-            }
-        }
-    }));
+                return { start: '18:00', end: '' };
+            },
+
+            autoEnd(day) {
+                var start = this.times[day].start;
+                if (!start || this.times[day].end) return;
+                var parts = start.split(':');
+                var h = parseInt(parts[0]) + 1;
+                if (h > 23) h = 23;
+                this.times[day].end = (h < 10 ? '0' + h : '' + h) + ':' + parts[1];
+            },
+
+            propagate(day) {
+                if (!this.times[day].start) return;
+                for (var i = 0; i < this.selected.length; i++) {
+                    var d = this.selected[i];
+                    if (d !== day && !this.times[d].start) {
+                        this.times[d].start = this.times[day].start;
+                        this.times[d].end   = this.times[day].end;
+                    }
+                }
+            },
+
+            get hasValidSchedule() {
+                if (this.selected.length === 0) return false;
+                for (var i = 0; i < this.selected.length; i++) {
+                    var d = this.selected[i];
+                    if (!this.times[d].start || !this.times[d].end) return false;
+                    if (this.times[d].end <= this.times[d].start) return false;
+                }
+                return true;
+            },
+
+            get scheduleHint() {
+                if (this.selected.length === 0) return null;
+                for (var i = 0; i < this.selected.length; i++) {
+                    var d = this.selected[i];
+                    if (!this.times[d].start || !this.times[d].end) return 'Completa la hora de inicio y fin de cada día.';
+                    if (this.times[d].end <= this.times[d].start) return 'La hora de fin debe ser mayor a la hora de inicio.';
+                }
+                return null;
+            },
+        }));
     }
     if (window.Alpine) {
         registerScheduleSelector();

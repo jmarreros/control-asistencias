@@ -7,6 +7,7 @@ use App\Http\Controllers\ClaseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EnrollmentController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\MatriculaController;
 use App\Http\Controllers\PinController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingController;
@@ -34,6 +35,9 @@ Route::middleware(['check.pin', 'session.timeout', 'log.access'])->group(functio
     // Alumnos
     Route::resource('students', StudentController::class)
         ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+
+    // Matrícula — búsqueda de alumno + gestión de plan
+    Route::get('matricula', [MatriculaController::class, 'index'])->name('matricula.index');
 
     // Planes de alumnos
     Route::get('students/{student}/plans', [StudentPlanController::class, 'index'])->name('students.plans.index');

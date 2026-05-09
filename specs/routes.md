@@ -16,6 +16,7 @@ GET       /settings                      SettingController@edit
 POST      /settings                      SettingController@update
 
 GET/POST  /students                      StudentController (index, create, store, edit, update, destroy)
+GET       /matricula                     MatriculaController@index          ← buscador alumno + gestión de plan
 GET       /students/{student}/plans      StudentPlanController@index
 POST      /students/{student}/plans      StudentPlanController@store
 DELETE    /students/{student}/plans/{plan} StudentPlanController@destroy

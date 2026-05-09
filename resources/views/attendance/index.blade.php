@@ -19,7 +19,7 @@
         <div class="flex items-center gap-2 mb-1">
             <a href="{{ route('dashboard') }}"><img src="{{ asset('images/logo-xs.jpg') }}" class="w-9 h-9 object-contain rounded-full shrink-0" alt="Logo"></a>
             <div>
-                <h1 class="text-xl font-bold text-white">Tomar Asistencia</h1>
+                <h1 class="text-xl font-bold text-white">Tomar asistencia por alumno</h1>
                 <p class="text-white/60 text-sm">{{ now()->locale('es')->isoFormat('dddd D [de] MMMM') }}</p>
             </div>
         </div>

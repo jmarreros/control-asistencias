@@ -82,7 +82,7 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         if ($request->filled('inactive_student_id')) {
-            $student = Student::where('id', $request->inactive_student_id)
+            $student = Student::where('id', (int) $request->inactive_student_id)
                 ->where('active', false)
                 ->firstOrFail();
 
@@ -93,13 +93,18 @@ class StudentController extends Controller
         }
 
         $data = $request->validate([
-            'name' => 'required|string|max:100',
-            'dni' => 'nullable|digits:8|unique:students,dni',
+            'name' => ['required', 'string', 'max:100', function ($attribute, $value, $fail) {
+                if (count(array_filter(explode(' ', trim($value)))) < 2) {
+                    $fail('El nombre debe contener al menos dos palabras.');
+                }
+            }],
+            'dni' => 'required|string|min:8|max:12|unique:students,dni',
             'phone' => ['required', 'string', 'min:8', 'max:20', 'regex:/^[\d\s\-\+\(\)]+$/'],
             'notes' => 'nullable|string',
         ], [
-            'dni.unique' => 'El DNI ingresado ya está registrado.',
-            'dni.digits' => 'El DNI debe tener exactamente 8 dígitos.',
+            'dni.unique' => 'El documento de identidad ingresado ya está registrado.',
+            'dni.min'    => 'El documento debe tener al menos 8 caracteres.',
+            'dni.max'    => 'El documento no puede tener más de 12 caracteres.',
             'phone.required' => 'El teléfono es obligatorio.',
             'phone.min' => 'El teléfono debe tener al menos 8 caracteres.',
             'phone.max' => 'El teléfono no puede tener más de 20 caracteres.',
@@ -121,15 +126,27 @@ class StudentController extends Controller
 
     public function update(Request $request, Student $student)
     {
+        if ($request->boolean('_activate_only')) {
+            $student->update(['active' => true]);
+            return redirect()->route('students.index')
+                ->with('success', 'Alumno activado correctamente.');
+        }
+
         $data = $request->validate([
-            'name' => 'required|string|max:100',
-            'dni' => ['nullable', 'digits:8', 'unique:students,dni,'.$student->id],
+            'name' => ['required', 'string', 'max:100', function ($attribute, $value, $fail) {
+                if (count(array_filter(explode(' ', trim($value)))) < 2) {
+                    $fail('El nombre debe contener al menos dos palabras.');
+                }
+            }],
+            'dni' => ['required', 'string', 'min:8', 'max:12', 'unique:students,dni,'.$student->id],
             'phone' => ['required', 'string', 'min:8', 'max:20', 'regex:/^[\d\s\-\+\(\)]+$/'],
             'notes' => 'nullable|string',
             'active' => 'boolean',
         ], [
-            'dni.unique' => 'El DNI ingresado ya está registrado.',
-            'dni.digits' => 'El DNI debe tener exactamente 8 dígitos.',
+            'dni.required' => 'El documento de identidad es obligatorio.',
+            'dni.unique'   => 'El documento de identidad ingresado ya está registrado.',
+            'dni.min'      => 'El documento debe tener al menos 8 caracteres.',
+            'dni.max'      => 'El documento no puede tener más de 12 caracteres.',
             'phone.required' => 'El teléfono es obligatorio.',
             'phone.min' => 'El teléfono debe tener al menos 8 caracteres.',
             'phone.max' => 'El teléfono no puede tener más de 20 caracteres.',

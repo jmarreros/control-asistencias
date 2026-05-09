@@ -11,24 +11,41 @@
     <h1 class="text-xl font-bold text-white">Editar Alumno</h1>
 </div>
 
-<form id="form-update" method="POST" action="{{ route('students.update', $student) }}" class="p-4 space-y-4">
+<form id="form-update" method="POST" action="{{ route('students.update', $student) }}" class="p-4 space-y-4"
+      x-data="{
+          name: '{{ old('name', $student->name) }}',
+          normalizeName() {
+              this.name = this.name.toLowerCase().split(' ')
+                  .map(w => w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)
+                  .join(' ');
+          },
+          get hasValidName() {
+              return this.name.trim().split(/\s+/).filter(Boolean).length >= 2;
+          }
+      }">
     @csrf
     @method('PUT')
 
     <div>
         <label class="block text-sm font-medium text-white/80 mb-1">Nombre completo *</label>
-        <input type="text" name="name" value="{{ old('name', $student->name) }}" required
+        <input type="text" name="name" x-model="name" @blur="normalizeName()"
+               required autocomplete="off"
                class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white
                       bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15
                       @error('name') border-red-400 @enderror">
+        @if(!$errors->has('name'))
+            <p x-show="name.length > 0 && !hasValidName"
+               class="text-red-400 text-xs mt-1">El nombre debe contener al menos dos palabras.</p>
+        @endif
         @error('name')
             <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
         @enderror
     </div>
 
     <div>
-        <label class="block text-sm font-medium text-white/80 mb-1">DNI</label>
-        <input type="text" name="dni" value="{{ old('dni', $student->dni) }}" maxlength="20" inputmode="numeric"
+        <label class="block text-sm font-medium text-white/80 mb-1">DNI *</label>
+        <input type="text" name="dni" value="{{ old('dni', $student->dni) }}"
+               required maxlength="12" autocomplete="off"
                placeholder="Ej. 12345678"
                class="w-full border border-white/50 rounded-xl px-4 py-3 text-base text-white placeholder-white/40
                       bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15
@@ -57,19 +74,7 @@
                          bg-white/10 focus:outline-none focus:border-indigo-400 focus:bg-white/15">{{ old('notes', $student->notes) }}</textarea>
     </div>
 
-    <div class="flex items-center gap-3">
-        <label class="relative inline-flex items-center cursor-pointer">
-            <input type="hidden" name="active" value="0">
-            <input type="checkbox" name="active" value="1" class="sr-only peer"
-                   {{ old('active', $student->active) ? 'checked' : '' }}>
-            <div class="w-11 h-6 bg-white/20 rounded-full peer
-                        peer-checked:after:translate-x-full peer-checked:after:border-white
-                        after:content-[''] after:absolute after:top-[2px] after:left-[2px]
-                        after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all
-                        peer-checked:bg-indigo-600"></div>
-        </label>
-        <span class="text-sm font-medium text-white/80">Alumno activo</span>
-    </div>
+    <input type="hidden" name="active" value="{{ $student->active ? '1' : '0' }}">
 </form>
 
 {{-- Plan actual --}}
@@ -137,10 +142,7 @@
         <form method="POST" action="{{ route('students.update', $student) }}">
             @csrf
             @method('PUT')
-            <input type="hidden" name="name" value="{{ $student->name }}">
-            <input type="hidden" name="dni" value="{{ $student->dni }}">
-            <input type="hidden" name="phone" value="{{ $student->phone }}">
-            <input type="hidden" name="notes" value="{{ $student->notes }}">
+            <input type="hidden" name="_activate_only" value="1">
             <input type="hidden" name="active" value="1">
             <button type="submit" class="w-full text-green-400 border border-green-500/30 font-medium py-3 rounded-xl text-sm">
                 Activar alumno
