@@ -34,8 +34,8 @@ Input `type="search"` con Alpine `x-model="search"`. Filtra client-side por nomb
 
 | Condición | Vista |
 |---|---|
-| `!search` | Instrucción: icono + "Escribe el nombre o DNI del alumno" |
-| `search && filtered.length === 0` | "No se encontró ningún alumno." + botón **"Registrar nuevo alumno"** → `/students/create` |
+| `!search` | Instrucción: icono + "Escribe el nombre o DNI del alumno" + subtexto "¿Es un alumno nuevo?" + botón **"Registrar nuevo alumno"** → `/students/create` |
+| `search && filtered.length === 0` | "No se encontró ningún alumno." + subtexto "¿Es un alumno nuevo?" + botón **"Registrar nuevo alumno"** → `/students/create` |
 | `filtered.length > 0` | Lista de resultados |
 
 ### Lista de resultados (`<template x-for>`)

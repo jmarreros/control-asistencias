@@ -76,13 +76,24 @@
         </div>
     </div>
 
-    {{-- Sin búsqueda: instrucción --}}
-    <div x-show="!search" class="px-4 py-14 text-center flex flex-col items-center gap-3">
+    {{-- Sin búsqueda: instrucción + botón nuevo alumno --}}
+    <div x-show="!search" class="px-4 py-10 text-center flex flex-col items-center gap-4">
         <svg class="w-10 h-10 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
         </svg>
-        <p class="text-white/40 text-sm">Escribe el nombre o DNI del alumno</p>
+        <div>
+            <p class="text-white/40 text-sm">Escribe el nombre o DNI del alumno</p>
+            <p class="text-white/30 text-xs mt-1">¿Es un alumno nuevo?</p>
+        </div>
+        <a :href="createUrl"
+           class="inline-flex items-center gap-2 bg-emerald-600/25 border border-emerald-400/30
+                  text-emerald-300 text-sm font-medium px-5 py-2.5 rounded-xl active:bg-emerald-600/40">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Registrar nuevo alumno
+        </a>
     </div>
 
     {{-- Sin resultados --}}
