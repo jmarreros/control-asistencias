@@ -67,6 +67,7 @@
                             'promo_10'  => 'border-blue-400/40 text-blue-300',
                             'promo_20'  => 'border-violet-400/40 text-violet-300',
                             'promo_30'  => 'border-orange-400/40 text-orange-300',
+                            'promo_40'  => 'border-red-400/40 text-red-300',
                             'promo_2x1' => 'border-pink-400/40 text-pink-300',
                         ];
                         $colorClass = $promoColors[$key] ?? 'border-white/20 text-white/60';
@@ -125,6 +126,7 @@
                                             'promo_10'  => 'bg-blue-500/20 text-blue-300',
                                             'promo_20'  => 'bg-violet-500/20 text-violet-300',
                                             'promo_30'  => 'bg-orange-500/20 text-orange-300',
+                                            'promo_40'  => 'bg-red-500/20 text-red-300',
                                             'promo_2x1' => 'bg-pink-500/20 text-pink-300',
                                         ];
                                     @endphp

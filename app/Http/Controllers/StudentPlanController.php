@@ -64,6 +64,7 @@ class StudentPlanController extends Controller
             'promo_10' => ['label' => 'Descuento 10%',  'discount' => 10],
             'promo_20' => ['label' => 'Descuento 20%',  'discount' => 20],
             'promo_30' => ['label' => 'Descuento 30%',  'discount' => 30],
+            'promo_40' => ['label' => 'Descuento 40%',  'discount' => 40],
             'promo_2x1' => ['label' => 'Promoción 2x1',  'discount' => 50],
         ])->filter(fn ($_, $key) => (bool) Setting::get($key, 0));
 
@@ -83,10 +84,15 @@ class StudentPlanController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'class_quota' => 'required|in:8,12,16,24,full1,full2',
             'price' => 'nullable|numeric|min:0',
-            'promotion' => 'nullable|in:promo_10,promo_20,promo_30,promo_2x1',
+            'promotion' => 'nullable|in:promo_10,promo_20,promo_30,promo_40,promo_2x1',
             'clases' => 'nullable|array',
             'clases.*' => 'exists:clases,id',
         ]);
+
+        // Si ya existe un plan con la misma fecha de inicio, cancelarlo antes de crear el nuevo
+        $student->plans()
+            ->where('start_date', $request->start_date)
+            ->each(fn ($p) => $p->delete());
 
         $overlap = $student->plans()
             ->where('start_date', '<=', $request->end_date)

@@ -190,6 +190,7 @@
                       'promo_10':  'border-blue-400 bg-blue-500/25 text-blue-300',
                       'promo_20':  'border-violet-400 bg-violet-500/25 text-violet-300',
                       'promo_30':  'border-orange-400 bg-orange-500/25 text-orange-300',
+                      'promo_40':  'border-red-400 bg-red-500/25 text-red-300',
                       'promo_2x1': 'border-pink-400 bg-pink-500/25 text-pink-300',
                   },
                   allClasesData: {{ json_encode($clases->map(fn($c) => ['id' => (string)$c->id, 'name' => strtolower($c->name)])) }},
@@ -204,7 +205,9 @@
                       'full2': 'Full-2 para 2 meses',
                   },
                   discount: 0,
+                  clasesFilter: 'todos',
                   promoKey: '',
+                  init() { this.filterClases(this.clasesFilter); },
                   price: '{{ old('price', $prices['8']) }}',
                   get dateError() {
                       return this.startDate && this.endDate && this.endDate < this.startDate;
@@ -275,69 +278,53 @@
                     <p class="text-red-400 text-xs mt-1">{{ $message }}</p>
                 @enderror
 
+                <div class="mt-3">
+                    <label class="block text-xs font-medium text-white/70 mb-1">Rango de fechas</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="min-w-0">
+                            <label class="block text-xs text-white/50 mb-1">Inicio *</label>
+                            <input type="date" name="start_date" required
+                                   x-model.lazy="startDate" @change="calcEndDate()"
+                                   :class="dateError ? 'border-red-400' : 'border-white/50'"
+                                   class="w-full min-w-0 rounded-xl px-2 py-2.5 text-xs border
+                                          bg-white/10 text-white
+                                          focus:outline-none focus:border-indigo-400 focus:bg-white/15">
+                        </div>
+                        <div class="min-w-0">
+                            <label class="block text-xs text-white/50 mb-1">Fin *</label>
+                            <input type="date" name="end_date" required
+                                   x-model.lazy="endDate"
+                                   :class="dateError ? 'border-red-400' : 'border-white/50'"
+                                   class="w-full min-w-0 rounded-xl px-2 py-2.5 text-xs border
+                                          bg-white/10 text-white
+                                          focus:outline-none focus:border-indigo-400 focus:bg-white/15">
+                        </div>
+                    </div>
+                    <p x-show="dateError" class="text-red-400 text-xs mt-1">
+                        La fecha fin debe ser igual o posterior a la fecha inicio.
+                    </p>
+                </div>
+
                 {{-- Cursos --}}
                 @if($clases->isNotEmpty())
                 <div class="mt-3">
-                    <label class="block text-xs font-medium text-white/70 mb-2">Cursos</label>
-                    <div class="flex flex-wrap gap-x-3 gap-y-1 mb-2">
-                        <button type="button" @click="filterClases('todos')"      class="text-xs text-indigo-400">Marcar todos</button>
-                        <button type="button" @click="filterClases('salsa')"      class="text-xs text-indigo-400">Sólo salsa</button>
-                        <button type="button" @click="filterClases('bachata')"    class="text-xs text-indigo-400">Sólo bachata</button>
-                        <button type="button" @click="filterClases('lady')"       class="text-xs text-indigo-400">Sólo lady</button>
-                        <button type="button" @click="filterClases('menos-lady')" class="text-xs text-indigo-400">Todos menos lady</button>
-                    </div>
+                    <label class="block text-xs font-medium text-white/70 mb-1">Cursos</label>
+                    <select x-model="clasesFilter" @change="filterClases(clasesFilter)"
+                            class="w-full rounded-xl px-3 py-2.5 text-sm border border-white/50
+                                   bg-white/10 text-white
+                                   focus:outline-none focus:border-indigo-400 focus:bg-white/15">
+                        <option value="todos" class="bg-gray-800">Todos los cursos</option>
+                        <option value="salsa" class="bg-gray-800">Sólo salsa</option>
+                        <option value="bachata" class="bg-gray-800">Sólo bachata</option>
+                        <option value="lady" class="bg-gray-800">Sólo lady</option>
+                        <option value="menos-lady" class="bg-gray-800">Todos menos lady</option>
+                    </select>
                     {{-- Hidden inputs para envío del formulario --}}
                     <template x-for="id in selectedClases" :key="id">
                         <input type="hidden" name="clases[]" :value="id">
                     </template>
-
-                    <div class="flex flex-wrap gap-2">
-                        @foreach($clases as $clase)
-                        <div @click="selectedClases.includes('{{ $clase->id }}')
-                                ? selectedClases = selectedClases.filter(id => id !== '{{ $clase->id }}')
-                                : selectedClases.push('{{ $clase->id }}')"
-                             class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border cursor-pointer transition-colors"
-                             :class="selectedClases.includes('{{ $clase->id }}')
-                                 ? 'bg-indigo-500/20 border-indigo-400/40'
-                                 : 'bg-white/5 border-white/10'">
-                            <div class="w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors"
-                                 :class="selectedClases.includes('{{ $clase->id }}') ? 'bg-indigo-500 border-indigo-400' : 'border-white/30'">
-                                <svg class="w-2 h-2 text-white transition-opacity"
-                                     :class="selectedClases.includes('{{ $clase->id }}') ? 'opacity-100' : 'opacity-0'"
-                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            </div>
-                            <p class="text-xs text-white">{{ $clase->name }}</p>
-                        </div>
-                        @endforeach
-                    </div>
                 </div>
                 @endif
-
-                <div class="grid grid-cols-2 gap-3 mt-3">
-                    <div class="min-w-0">
-                        <label class="block text-xs font-medium text-white/70 mb-1">Fecha inicio *</label>
-                        <input type="date" name="start_date" required
-                               x-model.lazy="startDate" @change="calcEndDate()"
-                               :class="dateError ? 'border-red-400' : 'border-white/50'"
-                               class="w-full min-w-0 rounded-xl px-2 py-2.5 text-xs border
-                                      bg-white/10 text-white
-                                      focus:outline-none focus:border-indigo-400 focus:bg-white/15">
-                    </div>
-                    <div class="min-w-0">
-                        <label class="block text-xs font-medium text-white/70 mb-1">Fecha fin *</label>
-                        <input type="date" name="end_date" required
-                               x-model.lazy="endDate"
-                               :class="dateError ? 'border-red-400' : 'border-white/50'"
-                               class="w-full min-w-0 rounded-xl px-2 py-2.5 text-xs border
-                                      bg-white/10 text-white
-                                      focus:outline-none focus:border-indigo-400 focus:bg-white/15">
-                    </div>
-                </div>
-                <p x-show="dateError" class="text-red-400 text-xs mt-1">
-                    La fecha fin debe ser igual o posterior a la fecha inicio.
-                </p>
 
                 {{-- Promociones activas --}}
                 <template x-if="promos.length > 0">

@@ -25,8 +25,8 @@ App mobile-first para que el profesor registre asistencias desde el celular, sin
 ## Instalación
 
 ```bash
-git clone https://github.com/jmarreros/control-asistencias.git
-cd control-asistencias
+git clone https://github.com/jmarreros/slm-control-asistencias.git
+cd slm-control-asistencias
 
 composer install
 npm install

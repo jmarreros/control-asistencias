@@ -22,6 +22,7 @@ class SettingController extends Controller
             'promo_10' => (bool) Setting::get('promo_10', 0),
             'promo_20' => (bool) Setting::get('promo_20', 0),
             'promo_30' => (bool) Setting::get('promo_30', 0),
+            'promo_40' => (bool) Setting::get('promo_40', 0),
             'promo_2x1' => (bool) Setting::get('promo_2x1', 0),
         ];
 
@@ -79,6 +80,7 @@ class SettingController extends Controller
         Setting::set('promo_10', $request->boolean('promo_10') ? 1 : 0);
         Setting::set('promo_20', $request->boolean('promo_20') ? 1 : 0);
         Setting::set('promo_30', $request->boolean('promo_30') ? 1 : 0);
+        Setting::set('promo_40', $request->boolean('promo_40') ? 1 : 0);
         Setting::set('promo_2x1', $request->boolean('promo_2x1') ? 1 : 0);
 
         Setting::set('notify_days_before', $request->notify_days_before);

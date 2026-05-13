@@ -3,7 +3,7 @@
         "laravel-boost": {
             "command": "/opt/homebrew/Cellar/php/8.4.7/bin/php",
             "args": [
-                "/Users/jmarreros/Desktop/control-asistencias/artisan",
+                "/Users/jmarreros/Desktop/slm-control-asistencias/artisan",
                 "boost:mcp"
             ]
         }

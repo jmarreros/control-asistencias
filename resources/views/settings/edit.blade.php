@@ -109,6 +109,7 @@
             'promo_10'  => ['label' => 'Descuento 10%',  'desc' => '10% de descuento sobre el precio del plan'],
             'promo_20'  => ['label' => 'Descuento 20%',  'desc' => '20% de descuento sobre el precio del plan'],
             'promo_30'  => ['label' => 'Descuento 30%',  'desc' => '30% de descuento sobre el precio del plan'],
+            'promo_40'  => ['label' => 'Descuento 40%',  'desc' => '40% de descuento sobre el precio del plan'],
             'promo_2x1' => ['label' => 'Promoción 2x1',  'desc' => 'Dos alumnos por el precio de uno'],
         ] as $key => $promo)
         <div class="flex items-center justify-between px-4 py-3 border-b border-white/10 last:border-0">

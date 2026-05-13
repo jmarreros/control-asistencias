@@ -29,9 +29,12 @@ $student->clases()->sync([$id => ['enrolled_at' => $request->start_date], ...]);
 - Cuenta días de lunes a viernes, ignorando sábados y domingos
 
 ### Selección de cursos al crear plan (`students/plans.blade.php`)
-Botones de filtro rápido:
-- **Marcar todos** / **Sólo salsa** / **Sólo bachata** / **Sólo lady** / **Todos menos lady**
-- Para planes `full1`/`full2`, al cambiar cuota se seleccionan todos los cursos automáticamente
+Desplegable `<select>` con cinco opciones (llama a `filterClases(keyword)` al cambiar):
+- **Todos los cursos** (default) / **Sólo salsa** / **Sólo bachata** / **Sólo lady** / **Todos menos lady**
+- Al inicializar el formulario (`init()`) se aplica automáticamente "Todos los cursos"
+- Para planes `full1`/`full2`, `updatePrice()` llama `filterClases('todos')` al cambiar cuota
+- Los IDs seleccionados se envían via `<input type="hidden" name="clases[]">` (Alpine `x-for`)
+- El desplegable aparece **debajo del rango de fechas** en el formulario
 
 ## Promociones
 
